@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 use Dynamik\Modman\Contracts\Grader;
 use Dynamik\Modman\Contracts\ModerationPolicy;
+use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+use Spatie\ModelStates\State;
+use Spatie\ModelStates\Transition;
 
 arch('no debugging calls anywhere in src/')
     ->expect(['dd', 'dump', 'var_dump', 'die', 'exit', 'ray'])
@@ -72,3 +77,21 @@ arch('src does not depend on tests or factories')
 arch('no direct Guzzle usage in src; use Http:: facade')
     ->expect('Dynamik\Modman')
     ->not->toUse(['GuzzleHttp\Client', 'GuzzleHttp\ClientInterface']);
+
+arch('states extend Spatie\\ModelStates\\State')
+    ->expect('Dynamik\Modman\States')
+    ->classes()
+    ->toExtend(State::class);
+
+arch('transitions extend Spatie\\ModelStates\\Transition')
+    ->expect('Dynamik\Modman\Transitions')
+    ->classes()
+    ->toExtend(Transition::class);
+
+arch('events are plain PHP objects with no Laravel event traits')
+    ->expect('Dynamik\Modman\Events')
+    ->not->toUse([
+        Dispatchable::class,
+        SerializesModels::class,
+        InteractsWithSockets::class,
+    ]);
