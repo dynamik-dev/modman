@@ -1,0 +1,2 @@
+# One word per line. Lines starting with # are ignored.
+# Ship your own list via `php artisan vendor:publish --tag=modman-resources`.
