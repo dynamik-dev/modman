@@ -1,0 +1,38 @@
+# modman .bully.yml
+#
+# Bully wraps the three existing gates so they run at edit-time instead of only
+# in CI: Laravel Pint (format), Larastan (static analysis), and the Pest
+# architecture suite. Each rule no-ops gracefully if its binary isn't installed
+# yet, so bully works in a fresh clone before `composer install`.
+
+rules:
+  pint:
+    description: >
+      Laravel Pint enforces the project's formatting rules (pint.json).
+      Running it on every edited file catches style drift before commit.
+    engine: script
+    scope: ["src/**/*.php", "tests/**/*.php", "database/**/*.php", "config/*.php", "routes/*.php"]
+    severity: error
+    script: "[ -x vendor/bin/pint ] && { vendor/bin/pint --test {file} && exit 0 || exit 1; } || exit 0"
+
+  larastan:
+    description: >
+      Larastan (PHPStan level 9 via phpstan.neon) catches type errors,
+      null-safety issues, and Laravel-specific mistakes. Running it per
+      edited file gives fast feedback without waiting for the CI matrix.
+    engine: script
+    scope: ["src/**/*.php", "database/factories/*.php"]
+    severity: error
+    script: "[ -x vendor/bin/phpstan ] && { vendor/bin/phpstan analyse --memory-limit=1G --no-progress {file} && exit 0 || exit 1; } || exit 0"
+
+  pest-arch:
+    description: >
+      The Pest architecture suite (tests/Arch/ArchTest.php) enforces
+      package invariants: strict types everywhere in src/, contracts are
+      interfaces only, graders/policies are final, events are final
+      readonly, no debug calls, no direct Guzzle usage, and so on. Any
+      change under src/ or tests/Arch/ should re-run it.
+    engine: script
+    scope: ["src/**/*.php", "tests/Arch/*.php"]
+    severity: error
+    script: "[ -x vendor/bin/pest ] && { vendor/bin/pest --testsuite=arch --compact && exit 0 || exit 1; } || exit 0"

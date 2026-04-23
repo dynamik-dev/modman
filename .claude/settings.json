@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/Users/chrisarter/.claude/plugins/cache/bully-marketplace/bully/0.4.1/pipeline/hook.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
