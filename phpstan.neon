@@ -1,6 +1,5 @@
 includes:
     - vendor/larastan/larastan/extension.neon
-    - phpstan-baseline.neon
 
 parameters:
     level: 9
@@ -8,3 +7,10 @@ parameters:
         - src
         - database/factories
     reportUnmatchedIgnoredErrors: true
+    ignoreErrors:
+        -
+            identifier: missingType.generics
+            path: src/Models/Report.php
+        -
+            identifier: missingType.generics
+            path: src/Models/Decision.php

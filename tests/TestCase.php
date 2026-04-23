@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Dynamik\Modman\Tests;
 
 use Dynamik\Modman\ModmanServiceProvider;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 abstract class TestCase extends BaseTestCase
@@ -22,5 +24,16 @@ abstract class TestCase extends BaseTestCase
             'database' => ':memory:',
             'prefix' => '',
         ]);
+    }
+
+    protected function defineDatabaseMigrations(): void
+    {
+        $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+
+        Schema::create('test_reportables', function (Blueprint $table): void {
+            $table->ulid('id')->primary();
+            $table->text('body')->nullable();
+            $table->timestamps();
+        });
     }
 }

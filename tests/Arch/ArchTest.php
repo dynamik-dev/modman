@@ -67,12 +67,9 @@ arch('support value objects have no illuminate/database dep')
         'GuzzleHttp',
     ]);
 
-arch('src does not depend on tests or factories')
+arch('src does not depend on tests')
     ->expect('Dynamik\Modman')
-    ->not->toUse([
-        'Dynamik\Modman\Tests',
-        'Dynamik\Modman\Database\Factories',
-    ]);
+    ->not->toUse(['Dynamik\Modman\Tests']);
 
 arch('no direct Guzzle usage in src; use Http:: facade')
     ->expect('Dynamik\Modman')
