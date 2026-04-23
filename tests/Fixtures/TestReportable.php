@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Dynamik\Modman\Tests\Fixtures;
 
+use Dynamik\Modman\Concerns\Reportable as ReportableTrait;
 use Dynamik\Modman\Contracts\Reportable;
 use Dynamik\Modman\Support\ModerationContent;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 final class TestReportable extends Model implements Reportable
 {
     use HasUlids;
+    use ReportableTrait;
 
     protected $table = 'test_reportables';
 
