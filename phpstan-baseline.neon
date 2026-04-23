@@ -1,0 +1,19 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Parameter \$report of method Dynamik\\Modman\\Contracts\\Grader\:\:grade\(\) has invalid type Dynamik\\Modman\\Models\\Report\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Contracts/Grader.php
+
+		-
+			message: '#^Parameter \$latest of method Dynamik\\Modman\\Contracts\\ModerationPolicy\:\:decide\(\) has invalid type Dynamik\\Modman\\Models\\Decision\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Contracts/ModerationPolicy.php
+
+		-
+			message: '#^Parameter \$report of method Dynamik\\Modman\\Contracts\\ModerationPolicy\:\:decide\(\) has invalid type Dynamik\\Modman\\Models\\Report\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Contracts/ModerationPolicy.php
