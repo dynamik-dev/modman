@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Dynamik\Modman;
 
+use Dynamik\Modman\Contracts\ModerationPolicy;
 use Dynamik\Modman\Graders\DenylistGrader;
+use Dynamik\Modman\Policy\ConfigDrivenPolicy;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
@@ -40,6 +42,35 @@ final class ModmanServiceProvider extends ServiceProvider
             $caseSensitive = (bool) ($config['case_sensitive'] ?? false);
 
             return new DenylistGrader(array_values(array_unique($words)), $regex, $caseSensitive);
+        });
+
+        $this->app->bind(ConfigDrivenPolicy::class, function (Application $app): ConfigDrivenPolicy {
+            /** @var ConfigRepository $repo */
+            $repo = $app->make('config');
+            /** @var array<string, class-string> $pipelineMap */
+            $pipelineMap = (array) $repo->get('modman.pipeline', []);
+            $pipelineKeys = array_keys($pipelineMap);
+
+            $rejectAt = $repo->get('modman.thresholds.auto_reject_at', 0.9);
+            $approveBelow = $repo->get('modman.thresholds.auto_approve_below', 0.2);
+
+            return new ConfigDrivenPolicy(
+                pipeline: array_map('strval', array_keys($pipelineMap)),
+                autoRejectAt: is_numeric($rejectAt) ? (float) $rejectAt : 0.9,
+                autoApproveBelow: is_numeric($approveBelow) ? (float) $approveBelow : 0.2,
+            );
+        });
+
+        $this->app->bind(ModerationPolicy::class, function (Application $app): ModerationPolicy {
+            /** @var ConfigRepository $repo */
+            $repo = $app->make('config');
+            $configured = $repo->get('modman.policy', ConfigDrivenPolicy::class);
+            $class = is_string($configured) ? $configured : ConfigDrivenPolicy::class;
+
+            /** @var ModerationPolicy $instance */
+            $instance = $app->make($class);
+
+            return $instance;
         });
     }
 
