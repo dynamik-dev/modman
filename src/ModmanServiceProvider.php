@@ -6,6 +6,7 @@ namespace Dynamik\Modman;
 
 use Dynamik\Modman\Contracts\ModerationPolicy;
 use Dynamik\Modman\Graders\DenylistGrader;
+use Dynamik\Modman\Graders\LlmGrader;
 use Dynamik\Modman\Policy\ConfigDrivenPolicy;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Foundation\Application;
@@ -42,6 +43,34 @@ final class ModmanServiceProvider extends ServiceProvider
             $caseSensitive = (bool) ($config['case_sensitive'] ?? false);
 
             return new DenylistGrader(array_values(array_unique($words)), $regex, $caseSensitive);
+        });
+
+        $this->app->bind(LlmGrader::class, function (Application $app): LlmGrader {
+            /** @var ConfigRepository $repo */
+            $repo = $app->make('config');
+            /** @var array<string, mixed> $config */
+            $config = (array) $repo->get('modman.graders.llm', []);
+
+            $promptPath = is_string($config['prompt'] ?? null) ? $config['prompt'] : null;
+            $prompt = $promptPath !== null && is_file($promptPath)
+                ? (string) file_get_contents($promptPath)
+                : '{{content}}';
+
+            $apiKey = is_string($config['api_key'] ?? null) ? $config['api_key'] : '';
+
+            $driver = is_string($config['driver'] ?? null) ? $config['driver'] : 'anthropic';
+            $model = is_string($config['model'] ?? null) ? $config['model'] : 'claude-haiku-4-5';
+            $timeout = is_numeric($config['timeout'] ?? null) ? (int) $config['timeout'] : 15;
+            $maxTokens = is_numeric($config['max_tokens'] ?? null) ? (int) $config['max_tokens'] : 512;
+
+            return new LlmGrader(
+                driver: $driver,
+                model: $model,
+                promptTemplate: $prompt,
+                apiKey: $apiKey,
+                timeout: $timeout,
+                maxTokens: $maxTokens,
+            );
         });
 
         $this->app->bind(ConfigDrivenPolicy::class, function (Application $app): ConfigDrivenPolicy {

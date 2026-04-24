@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Dynamik\Modman\Graders\DenylistGrader;
+use Dynamik\Modman\Graders\LlmGrader;
 
 return [
     'queue' => env('MODMAN_QUEUE', 'modman'),
@@ -10,6 +11,7 @@ return [
 
     'pipeline' => [
         'denylist' => DenylistGrader::class,
+        'llm' => LlmGrader::class,
     ],
 
     'policy' => 'Dynamik\\Modman\\Policy\\ConfigDrivenPolicy',
@@ -25,6 +27,15 @@ return [
             'words_path' => resource_path('modman/denylist.txt'),
             'regex' => [],
             'case_sensitive' => false,
+        ],
+        'llm' => [
+            'driver' => env('MODMAN_LLM_DRIVER', 'anthropic'),
+            'model' => env('MODMAN_LLM_MODEL', 'claude-haiku-4-5'),
+            'prompt' => resource_path('modman/prompts/grader.md'),
+            'max_tokens' => 512,
+            'timeout' => 15,
+            'api_key_env' => 'MODMAN_LLM_API_KEY',
+            'api_key' => env('MODMAN_LLM_API_KEY'),
         ],
     ],
 ];
