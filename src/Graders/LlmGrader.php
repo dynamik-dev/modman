@@ -32,7 +32,7 @@ final class LlmGrader implements Grader
 
     public function supports(ModerationContent $content): bool
     {
-        return $content->hasText() || $content->hasImages();
+        return $content->hasText();
     }
 
     public function grade(ModerationContent $content, Report $report): Verdict
@@ -59,15 +59,7 @@ final class LlmGrader implements Grader
 
     private function renderContent(ModerationContent $content): string
     {
-        $parts = [];
-        if ($content->hasText()) {
-            $parts[] = 'TEXT: '.(string) $content->text();
-        }
-        foreach ($content->images() as $image) {
-            $parts[] = 'IMAGE: '.$image->url;
-        }
-
-        return implode("\n", $parts);
+        return $content->hasText() ? 'TEXT: '.(string) $content->text() : '';
     }
 
     private function callAnthropic(string $prompt): string

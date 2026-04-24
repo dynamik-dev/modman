@@ -34,7 +34,6 @@ return [
             'prompt' => resource_path('modman/prompts/grader.md'),
             'max_tokens' => 512,
             'timeout' => 15,
-            'api_key_env' => 'MODMAN_LLM_API_KEY',
             'api_key' => env('MODMAN_LLM_API_KEY'),
         ],
     ],
