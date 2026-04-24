@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dynamik\Modman\Concerns;
 
 use Dynamik\Modman\Events\ReportCreated;
+use Dynamik\Modman\Jobs\RunModerationPipeline;
 use Dynamik\Modman\Models\Report;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -40,6 +41,11 @@ trait Reportable
         ]));
 
         Event::dispatch(new ReportCreated($report));
+
+        $queue = config('modman.queue', 'modman');
+
+        RunModerationPipeline::dispatch($report->id)
+            ->onQueue(is_string($queue) ? $queue : 'modman');
 
         return $report;
     }
