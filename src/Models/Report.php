@@ -7,7 +7,10 @@ namespace Dynamik\Modman\Models;
 use Dynamik\Modman\Database\Factories\ReportFactory;
 use Dynamik\Modman\Events\ReportReopened;
 use Dynamik\Modman\Events\ReportResolved;
+use Dynamik\Modman\States\NeedsHuman;
 use Dynamik\Modman\States\ReportState;
+use Dynamik\Modman\States\ResolvedApproved;
+use Dynamik\Modman\States\ResolvedRejected;
 use Dynamik\Modman\Support\Tier;
 use Dynamik\Modman\Support\VerdictKind;
 use Dynamik\Modman\Transitions\Reopen;
@@ -21,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Spatie\ModelStates\Exceptions\CouldNotPerformTransition;
 use Spatie\ModelStates\HasStates;
 
 /**
@@ -68,30 +72,39 @@ final class Report extends Model
 
     public function resolveApprove(Model $moderator, ?string $reason = null): void
     {
-        $this->writeHumanDecision($moderator, VerdictKind::Approve, $reason);
-        $this->state->transition(new ToResolvedApproved($this, $moderator, $reason));
-        $this->refresh();
-        $this->resolved_at = now();
-        $this->save();
+        $this->guardTransition(ResolvedApproved::class);
+
+        DB::transaction(function () use ($moderator, $reason): void {
+            $this->writeHumanDecision($moderator, VerdictKind::Approve, $reason);
+            $this->state->transition(new ToResolvedApproved($this, $moderator, $reason));
+            $this->newQuery()->whereKey($this->getKey())->update(['resolved_at' => now()]);
+            $this->refresh();
+        });
         Event::dispatch(new ReportResolved($this, VerdictKind::Approve));
     }
 
     public function resolveReject(Model $moderator, ?string $reason = null): void
     {
-        $this->writeHumanDecision($moderator, VerdictKind::Reject, $reason);
-        $this->state->transition(new ToResolvedRejected($this, $moderator, $reason));
-        $this->refresh();
-        $this->resolved_at = now();
-        $this->save();
+        $this->guardTransition(ResolvedRejected::class);
+
+        DB::transaction(function () use ($moderator, $reason): void {
+            $this->writeHumanDecision($moderator, VerdictKind::Reject, $reason);
+            $this->state->transition(new ToResolvedRejected($this, $moderator, $reason));
+            $this->newQuery()->whereKey($this->getKey())->update(['resolved_at' => now()]);
+            $this->refresh();
+        });
         Event::dispatch(new ReportResolved($this, VerdictKind::Reject));
     }
 
     public function reopen(Model $actor, ?string $reason = null): void
     {
-        $this->state->transition(new Reopen($this, $actor, $reason));
-        $this->refresh();
-        $this->resolved_at = null;
-        $this->save();
+        $this->guardTransition(NeedsHuman::class);
+
+        DB::transaction(function () use ($actor, $reason): void {
+            $this->state->transition(new Reopen($this, $actor, $reason));
+            $this->newQuery()->whereKey($this->getKey())->update(['resolved_at' => null]);
+            $this->refresh();
+        });
         Event::dispatch(new ReportReopened($this, $actor, $reason));
     }
 
@@ -100,23 +113,35 @@ final class Report extends Model
         return ReportFactory::new();
     }
 
+    /**
+     * @param  class-string<ReportState>  $targetState
+     */
+    private function guardTransition(string $targetState): void
+    {
+        if (! $this->state->canTransitionTo($targetState)) {
+            throw CouldNotPerformTransition::notFound(
+                (string) $this->state,
+                $targetState::getMorphClass(),
+                $this,
+            );
+        }
+    }
+
     private function writeHumanDecision(Model $actor, VerdictKind $kind, ?string $reason): void
     {
         $rawKey = $actor->getKey();
         $actorId = is_scalar($rawKey) ? (string) $rawKey : null;
 
-        DB::transaction(function () use ($actor, $actorId, $kind, $reason): void {
-            Decision::query()->create([
-                'report_id' => $this->id,
-                'grader' => 'human',
-                'tier' => Tier::Human->value,
-                'verdict' => $kind->value,
-                'severity' => null,
-                'reason' => $reason,
-                'evidence' => [],
-                'actor_type' => $actor->getMorphClass(),
-                'actor_id' => $actorId,
-            ]);
-        });
+        Decision::query()->create([
+            'report_id' => $this->id,
+            'grader' => 'human',
+            'tier' => Tier::Human->value,
+            'verdict' => $kind->value,
+            'severity' => null,
+            'reason' => $reason,
+            'evidence' => [],
+            'actor_type' => $actor->getMorphClass(),
+            'actor_id' => $actorId,
+        ]);
     }
 }
