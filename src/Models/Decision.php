@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Support\Carbon;
 
 /**
  * @property string $id
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property array<string, mixed>|null $evidence
  * @property string|null $actor_type
  * @property string|null $actor_id
+ * @property Carbon|null $created_at
  */
 final class Decision extends Model
 {

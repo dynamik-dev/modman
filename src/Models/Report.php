@@ -37,6 +37,8 @@ use Spatie\ModelStates\HasStates;
  * @property-read ReportState $state
  * @property-write ReportState|string $state
  * @property Carbon|null $resolved_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 final class Report extends Model
 {
