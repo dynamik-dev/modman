@@ -34,7 +34,7 @@ it('resolveApprove writes a human decision and transitions to ResolvedApproved',
 
     Event::assertDispatched(
         ReportResolved::class,
-        fn ($e) => $e->outcome === VerdictKind::Approve
+        fn ($e): bool => $e->outcome === VerdictKind::Approve
     );
 });
 
@@ -59,7 +59,7 @@ it('resolveReject sets ResolvedRejected and writes a human reject decision', fun
 
     Event::assertDispatched(
         ReportResolved::class,
-        fn ($e) => $e->outcome === VerdictKind::Reject
+        fn ($e): bool => $e->outcome === VerdictKind::Reject
     );
 });
 

@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
+use Override;
 
 /**
  * @property string $id
@@ -38,12 +39,6 @@ final class Decision extends Model
 
     protected $guarded = [];
 
-    protected $casts = [
-        'severity' => 'float',
-        'evidence' => 'array',
-        'created_at' => 'datetime',
-    ];
-
     public function report(): BelongsTo
     {
         return $this->belongsTo(Report::class);
@@ -57,5 +52,15 @@ final class Decision extends Model
     protected static function newFactory(): DecisionFactory
     {
         return DecisionFactory::new();
+    }
+
+    #[Override]
+    protected function casts(): array
+    {
+        return [
+            'severity' => 'float',
+            'evidence' => 'array',
+            'created_at' => 'datetime',
+        ];
     }
 }

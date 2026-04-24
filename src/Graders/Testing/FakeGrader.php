@@ -10,22 +10,16 @@ use Dynamik\Modman\Support\ModerationContent;
 use Dynamik\Modman\Support\Verdict;
 use Dynamik\Modman\Support\VerdictKind;
 
-final class FakeGrader implements Grader
+final readonly class FakeGrader implements Grader
 {
-    private readonly string $key;
-
-    private readonly Verdict $verdict;
-
-    private readonly bool $supports;
+    private Verdict $verdict;
 
     public function __construct(
-        string $key = 'fake',
+        private string $key = 'fake',
         ?Verdict $verdict = null,
-        bool $supports = true,
+        private bool $supports = true,
     ) {
-        $this->key = $key;
         $this->verdict = $verdict ?? new Verdict(VerdictKind::Approve, 0.0, 'fake');
-        $this->supports = $supports;
     }
 
     public function key(): string

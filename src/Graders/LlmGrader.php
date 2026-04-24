@@ -14,15 +14,15 @@ use JsonException;
 use RuntimeException;
 use Throwable;
 
-final class LlmGrader implements Grader
+final readonly class LlmGrader implements Grader
 {
     public function __construct(
-        private readonly string $driver,
-        private readonly string $model,
-        private readonly string $promptTemplate,
-        private readonly string $apiKey,
-        private readonly int $timeout = 15,
-        private readonly int $maxTokens = 512,
+        private string $driver,
+        private string $model,
+        private string $promptTemplate,
+        private string $apiKey,
+        private int $timeout = 15,
+        private int $maxTokens = 512,
     ) {}
 
     public function key(): string
@@ -59,7 +59,7 @@ final class LlmGrader implements Grader
 
     private function renderContent(ModerationContent $content): string
     {
-        return $content->hasText() ? 'TEXT: '.(string) $content->text() : '';
+        return $content->hasText() ? 'TEXT: '.$content->text() : '';
     }
 
     private function callAnthropic(string $prompt): string

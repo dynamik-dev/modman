@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dynamik\Modman\Database\Factories;
 
 use Dynamik\Modman\Models\Report;
+use Dynamik\Modman\Tests\Fixtures\TestReportable;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -16,7 +17,7 @@ final class ReportFactory extends Factory
     public function definition(): array
     {
         return [
-            'reportable_type' => 'Dynamik\\Modman\\Tests\\Fixtures\\TestReportable',
+            'reportable_type' => TestReportable::class,
             'reportable_id' => (string) Str::ulid(),
             'reason' => 'spam',
             'state' => 'pending',

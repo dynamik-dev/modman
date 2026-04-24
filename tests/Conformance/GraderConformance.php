@@ -51,13 +51,13 @@ function assertGraderConforms(Closure $factory): void
 
 // Run the suite against each shipped grader.
 it('DenylistGrader conforms', function (): void {
-    assertGraderConforms(fn () => new DenylistGrader(words: ['badword']));
+    assertGraderConforms(fn (): DenylistGrader => new DenylistGrader(words: ['badword']));
 });
 
 it('FakeGrader conforms', function (): void {
-    assertGraderConforms(fn () => new FakeGrader);
+    assertGraderConforms(fn (): FakeGrader => new FakeGrader);
 });
 
 it('HeuristicGrader conforms', function (): void {
-    assertGraderConforms(fn () => new HeuristicGrader);
+    assertGraderConforms(fn (): HeuristicGrader => new HeuristicGrader);
 });

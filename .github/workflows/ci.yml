@@ -55,4 +55,4 @@ jobs:
       - name: composer-unused
         run: vendor/bin/composer-unused --no-progress
       - name: composer-require-checker
-        run: vendor/bin/composer-require-checker check --no-interaction
+        run: vendor/bin/composer-require-checker check --config-file=.composer-require-checker.json --no-interaction

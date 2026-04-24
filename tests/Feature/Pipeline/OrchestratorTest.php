@@ -20,8 +20,8 @@ it('runs the first grader and resolves when policy returns Approve', function ()
     Event::fake([GraderRan::class, ReportResolved::class]);
 
     $grader = new FakeGrader('denylist', new Verdict(VerdictKind::Approve, 0.0, 'clean'));
-    config()->set('modman.pipeline', ['denylist' => get_class($grader)]);
-    app()->instance(get_class($grader), $grader);
+    config()->set('modman.pipeline', ['denylist' => $grader::class]);
+    app()->instance($grader::class, $grader);
 
     $reportable = TestReportable::create(['body' => 'hi']);
     $report = $reportable->report(null, 'spam');
@@ -44,8 +44,8 @@ it('routes to human when policy returns RouteToHuman', function (): void {
     Event::fake([ReportAwaitingHuman::class]);
 
     $grader = new FakeGrader('denylist', new Verdict(VerdictKind::Inconclusive, 0.5, 'unsure'));
-    config()->set('modman.pipeline', ['denylist' => get_class($grader)]);
-    app()->instance(get_class($grader), $grader);
+    config()->set('modman.pipeline', ['denylist' => $grader::class]);
+    app()->instance($grader::class, $grader);
 
     $reportable = TestReportable::create(['body' => 'hmm']);
     $report = $reportable->report(null, 'spam');
@@ -76,8 +76,8 @@ it('records an error verdict when a grader throws', function (): void {
         }
     };
 
-    config()->set('modman.pipeline', ['denylist' => get_class($grader)]);
-    app()->instance(get_class($grader), $grader);
+    config()->set('modman.pipeline', ['denylist' => $grader::class]);
+    app()->instance($grader::class, $grader);
 
     $reportable = TestReportable::create(['body' => 'hmm']);
     $report = $reportable->report(null, 'spam');
@@ -130,11 +130,11 @@ it('advances to the next grader when policy escalates in a multi-tier pre-LLM pi
     };
 
     config()->set('modman.pipeline', [
-        'denylist' => get_class($denylist),
-        'heuristic' => get_class($heuristic),
+        'denylist' => $denylist::class,
+        'heuristic' => $heuristic::class,
     ]);
-    app()->instance(get_class($denylist), $denylist);
-    app()->instance(get_class($heuristic), $heuristic);
+    app()->instance($denylist::class, $denylist);
+    app()->instance($heuristic::class, $heuristic);
 
     $reportable = TestReportable::create(['body' => 'maybe questionable']);
     $report = $reportable->report(null, 'spam');
@@ -189,11 +189,11 @@ it('records a skipped decision and continues when a grader does not support the 
     };
 
     config()->set('modman.pipeline', [
-        'denylist' => get_class($denylist),
-        'heuristic' => get_class($heuristic),
+        'denylist' => $denylist::class,
+        'heuristic' => $heuristic::class,
     ]);
-    app()->instance(get_class($denylist), $denylist);
-    app()->instance(get_class($heuristic), $heuristic);
+    app()->instance($denylist::class, $denylist);
+    app()->instance($heuristic::class, $heuristic);
 
     $reportable = TestReportable::create(['body' => 'anything']);
     $report = $reportable->report(null, 'spam');

@@ -36,12 +36,12 @@ use Illuminate\Support\Facades\Event;
 use RuntimeException;
 use Throwable;
 
-final class Orchestrator
+final readonly class Orchestrator
 {
     public function __construct(
-        private readonly Container $container,
-        private readonly ModerationPolicy $policy,
-        private readonly Config $config,
+        private Container $container,
+        private ModerationPolicy $policy,
+        private Config $config,
     ) {}
 
     public function runNext(Report $report): void
@@ -109,7 +109,7 @@ final class Orchestrator
     {
         $state = $report->state->getValue();
         $pipeline = (array) $this->config->get('modman.pipeline', []);
-        $keys = array_map('strval', array_keys($pipeline));
+        $keys = array_map(strval(...), array_keys($pipeline));
 
         if ($state === 'needs_llm') {
             return 'llm';

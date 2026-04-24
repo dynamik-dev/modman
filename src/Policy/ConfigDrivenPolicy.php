@@ -13,15 +13,15 @@ use Dynamik\Modman\Support\PolicyActions\EscalateTo;
 use Dynamik\Modman\Support\PolicyActions\Reject;
 use Dynamik\Modman\Support\PolicyActions\RouteToHuman;
 
-final class ConfigDrivenPolicy implements ModerationPolicy
+final readonly class ConfigDrivenPolicy implements ModerationPolicy
 {
     /**
      * @param  list<string>  $pipeline  ordered grader keys
      */
     public function __construct(
-        private readonly array $pipeline,
-        private readonly float $autoRejectAt,
-        private readonly float $autoApproveBelow,
+        private array $pipeline,
+        private float $autoRejectAt,
+        private float $autoApproveBelow,
     ) {}
 
     public function decide(Report $report, Decision $latest): PolicyAction

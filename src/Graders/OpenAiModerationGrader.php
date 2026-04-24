@@ -12,12 +12,12 @@ use Dynamik\Modman\Support\VerdictKind;
 use Illuminate\Support\Facades\Http;
 use Throwable;
 
-final class OpenAiModerationGrader implements Grader
+final readonly class OpenAiModerationGrader implements Grader
 {
     public function __construct(
-        private readonly string $apiKey,
-        private readonly string $model = 'omni-moderation-latest',
-        private readonly int $timeout = 10,
+        private string $apiKey,
+        private string $model = 'omni-moderation-latest',
+        private int $timeout = 10,
     ) {}
 
     public function key(): string

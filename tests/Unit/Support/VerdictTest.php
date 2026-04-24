@@ -14,8 +14,8 @@ it('holds a kind, severity, reason, and evidence', function (): void {
 });
 
 it('rejects severity outside 0..1', function (): void {
-    expect(fn () => new Verdict(VerdictKind::Approve, -0.1, 'bad'))
+    expect(fn (): Verdict => new Verdict(VerdictKind::Approve, -0.1, 'bad'))
         ->toThrow(InvalidArgumentException::class);
-    expect(fn () => new Verdict(VerdictKind::Approve, 1.1, 'bad'))
+    expect(fn (): Verdict => new Verdict(VerdictKind::Approve, 1.1, 'bad'))
         ->toThrow(InvalidArgumentException::class);
 });

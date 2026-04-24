@@ -8,7 +8,7 @@ use Dynamik\Modman\Support\ModerationContent;
 
 it('resolves the grader with config-driven words', function (): void {
     config()->set('modman.graders.denylist.words', ['hate']);
-    config()->set('modman.graders.denylist.words_path', null);
+    config()->set('modman.graders.denylist.words_path');
 
     $grader = app(DenylistGrader::class);
     $verdict = $grader->grade(

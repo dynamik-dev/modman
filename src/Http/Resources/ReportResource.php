@@ -8,6 +8,7 @@ use Dynamik\Modman\Models\Decision;
 use Dynamik\Modman\Models\Report;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Override;
 
 /** @property Report $resource */
 final class ReportResource extends JsonResource
@@ -15,6 +16,7 @@ final class ReportResource extends JsonResource
     /**
      * @return array<string, mixed>
      */
+    #[Override]
     public function toArray(Request $request): array
     {
         /** @var iterable<int, Decision> $decisions */

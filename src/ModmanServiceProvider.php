@@ -11,9 +11,11 @@ use Dynamik\Modman\Policy\ConfigDrivenPolicy;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\ServiceProvider;
+use Override;
 
 final class ModmanServiceProvider extends ServiceProvider
 {
+    #[Override]
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/modman.php', 'modman');
@@ -84,7 +86,7 @@ final class ModmanServiceProvider extends ServiceProvider
             $approveBelow = $repo->get('modman.thresholds.auto_approve_below', 0.2);
 
             return new ConfigDrivenPolicy(
-                pipeline: array_map('strval', array_keys($pipelineMap)),
+                pipeline: array_map(strval(...), array_keys($pipelineMap)),
                 autoRejectAt: is_numeric($rejectAt) ? (float) $rejectAt : 0.9,
                 autoApproveBelow: is_numeric($approveBelow) ? (float) $approveBelow : 0.2,
             );

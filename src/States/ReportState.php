@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dynamik\Modman\States;
 
 use Dynamik\Modman\Models\Report;
+use Override;
 use Spatie\ModelStates\State;
 use Spatie\ModelStates\StateConfig;
 
@@ -13,6 +14,7 @@ use Spatie\ModelStates\StateConfig;
  */
 abstract class ReportState extends State
 {
+    #[Override]
     public static function config(): StateConfig
     {
         return parent::config()

@@ -9,7 +9,7 @@ use Dynamik\Modman\Support\ModerationContent;
 use Dynamik\Modman\Support\VerdictKind;
 
 it('rejects when an image matches a known-bad hash', function (): void {
-    $hasher = fn (Image $img) => 'deadbeefdeadbeef';
+    $hasher = fn (Image $img): string => 'deadbeefdeadbeef';
 
     $grader = new PerceptualHashGrader(
         knownHashes: ['deadbeefdeadbeef'],

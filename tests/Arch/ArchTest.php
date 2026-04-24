@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use Dynamik\Modman\Contracts\Grader;
 use Dynamik\Modman\Contracts\ModerationPolicy;
+use GuzzleHttp\Client;
+use GuzzleHttp\ClientInterface;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Database\Eloquent\Model;
@@ -73,7 +75,7 @@ arch('src does not depend on tests')
 
 arch('no direct Guzzle usage in src; use Http:: facade')
     ->expect('Dynamik\Modman')
-    ->not->toUse(['GuzzleHttp\Client', 'GuzzleHttp\ClientInterface']);
+    ->not->toUse([Client::class, ClientInterface::class]);
 
 arch('states extend Spatie\\ModelStates\\State')
     ->expect('Dynamik\Modman\States')

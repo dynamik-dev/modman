@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
+use Override;
 use Spatie\ModelStates\Exceptions\CouldNotPerformTransition;
 use Spatie\ModelStates\HasStates;
 
@@ -51,11 +52,6 @@ final class Report extends Model
     protected $table = 'reports';
 
     protected $guarded = [];
-
-    protected $casts = [
-        'resolved_at' => 'datetime',
-        'state' => ReportState::class,
-    ];
 
     public function reportable(): MorphTo
     {
@@ -145,5 +141,14 @@ final class Report extends Model
             'actor_type' => $actor->getMorphClass(),
             'actor_id' => $actorId,
         ]);
+    }
+
+    #[Override]
+    protected function casts(): array
+    {
+        return [
+            'resolved_at' => 'datetime',
+            'state' => ReportState::class,
+        ];
     }
 }

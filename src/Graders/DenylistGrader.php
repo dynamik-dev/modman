@@ -11,30 +11,19 @@ use Dynamik\Modman\Support\Verdict;
 use Dynamik\Modman\Support\VerdictKind;
 use Transliterator;
 
-final class DenylistGrader implements Grader
+final readonly class DenylistGrader implements Grader
 {
-    /** @var list<string> */
-    private readonly array $words;
-
-    /** @var list<string> */
-    private readonly array $regex;
-
-    private readonly bool $caseSensitive;
-
-    private readonly ?Transliterator $transliterator;
+    private ?Transliterator $transliterator;
 
     /**
      * @param  list<string>  $words
      * @param  list<string>  $regex
      */
     public function __construct(
-        array $words = [],
-        array $regex = [],
-        bool $caseSensitive = false,
+        private array $words = [],
+        private array $regex = [],
+        private bool $caseSensitive = false,
     ) {
-        $this->words = $words;
-        $this->regex = $regex;
-        $this->caseSensitive = $caseSensitive;
         $this->transliterator = Transliterator::create('Any-Latin; Latin-ASCII');
     }
 

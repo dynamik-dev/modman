@@ -11,19 +11,10 @@ use Dynamik\Modman\Support\ModerationContent;
 use Dynamik\Modman\Support\Verdict;
 use Dynamik\Modman\Support\VerdictKind;
 
-final class PerceptualHashGrader implements Grader
+final readonly class PerceptualHashGrader implements Grader
 {
-    /** @var list<string> */
-    private readonly array $knownHashes;
-
-    private readonly ?Closure $hasher;
-
     /** @param  list<string>  $knownHashes */
-    public function __construct(array $knownHashes, ?Closure $hasher)
-    {
-        $this->knownHashes = $knownHashes;
-        $this->hasher = $hasher;
-    }
+    public function __construct(private array $knownHashes, private ?Closure $hasher) {}
 
     public function key(): string
     {
@@ -32,12 +23,12 @@ final class PerceptualHashGrader implements Grader
 
     public function supports(ModerationContent $content): bool
     {
-        return $content->hasImages() && $this->hasher !== null;
+        return $content->hasImages() && $this->hasher instanceof Closure;
     }
 
     public function grade(ModerationContent $content, Report $report): Verdict
     {
-        if ($this->hasher === null) {
+        if (! $this->hasher instanceof Closure) {
             return new Verdict(VerdictKind::Skipped, 0.0, 'no hasher configured');
         }
 
