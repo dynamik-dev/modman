@@ -18,7 +18,7 @@
             <directory>tests/Feature</directory>
         </testsuite>
         <testsuite name="conformance">
-            <directory>tests/Conformance</directory>
+            <directory suffix=".php">tests/Conformance</directory>
         </testsuite>
     </testsuites>
     <source>
