@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Dynamik\Modman\Contracts\Grader;
 use Dynamik\Modman\Graders\DenylistGrader;
+use Dynamik\Modman\Graders\HeuristicGrader;
 use Dynamik\Modman\Graders\Testing\FakeGrader;
 use Dynamik\Modman\Models\Report;
 use Dynamik\Modman\Support\Image;
@@ -55,4 +56,8 @@ it('DenylistGrader conforms', function (): void {
 
 it('FakeGrader conforms', function (): void {
     assertGraderConforms(fn () => new FakeGrader);
+});
+
+it('HeuristicGrader conforms', function (): void {
+    assertGraderConforms(fn () => new HeuristicGrader);
 });
