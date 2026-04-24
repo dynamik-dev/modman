@@ -10,4 +10,5 @@ enum VerdictKind: string
     case Reject = 'reject';
     case Inconclusive = 'inconclusive';
     case Error = 'error';
+    case Skipped = 'skipped';
 }

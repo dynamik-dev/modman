@@ -111,11 +111,28 @@ final class Orchestrator
         $pipeline = (array) $this->config->get('modman.pipeline', []);
         $keys = array_map('strval', array_keys($pipeline));
 
-        return match ($state) {
-            'screening' => $keys[0] ?? null,
-            'needs_llm' => 'llm',
-            default => null,
-        };
+        if ($state === 'needs_llm') {
+            return 'llm';
+        }
+
+        if ($state !== 'screening') {
+            return null;
+        }
+
+        $used = [];
+        foreach ($report->decisions()->pluck('grader')->all() as $grader) {
+            if (is_scalar($grader)) {
+                $used[] = (string) $grader;
+            }
+        }
+
+        foreach ($keys as $key) {
+            if (! in_array($key, $used, true)) {
+                return $key;
+            }
+        }
+
+        return null;
     }
 
     private function resolveGrader(string $key): Grader
@@ -180,10 +197,7 @@ final class Orchestrator
             $report = $report->refresh();
         }
 
-        $queue = $this->config->get('modman.queue', 'modman');
-
-        RunModerationPipeline::dispatch($report->id)
-            ->onQueue(is_string($queue) ? $queue : 'modman');
+        $this->dispatchNext($report);
     }
 
     private function routeToHuman(Report $report): void
@@ -198,21 +212,22 @@ final class Orchestrator
 
     private function advance(Report $report, string $skippedKey): void
     {
-        $pipeline = (array) $this->config->get('modman.pipeline', []);
-        $keys = array_keys($pipeline);
-        $index = array_search($skippedKey, $keys, true);
+        Decision::query()->create([
+            'report_id' => $report->id,
+            'grader' => $skippedKey,
+            'tier' => $this->tierFor($skippedKey),
+            'verdict' => VerdictKind::Skipped->value,
+            'severity' => null,
+            'reason' => 'grader does not support this content',
+            'evidence' => ['skipped' => true],
+        ]);
 
-        if ($index === false || ! isset($keys[$index + 1])) {
-            $this->routeToHuman($report);
+        $this->dispatchNext($report);
+    }
 
-            return;
-        }
-
-        $next = $keys[$index + 1];
-        if ($next === 'llm' && ! ($report->state instanceof NeedsLlm)) {
-            $report->state->transition(new ToNeedsLlm($report));
-        }
-
-        RunModerationPipeline::dispatch($report->id);
+    private function dispatchNext(Report $report): void
+    {
+        RunModerationPipeline::dispatch($report->id)
+            ->onQueue(RunModerationPipeline::queueName());
     }
 }

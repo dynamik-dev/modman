@@ -42,10 +42,8 @@ trait Reportable
 
         Event::dispatch(new ReportCreated($report));
 
-        $queue = config('modman.queue', 'modman');
-
         RunModerationPipeline::dispatch($report->id)
-            ->onQueue(is_string($queue) ? $queue : 'modman');
+            ->onQueue(RunModerationPipeline::queueName());
 
         return $report;
     }
