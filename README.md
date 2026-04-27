@@ -88,7 +88,7 @@ Register the listener however you prefer (Laravel event discovery, a provider, e
 
 ## HTTP endpoints
 
-The package registers three routes under the `api` middleware group, prefix `modman`. Add auth/authorization middleware in your own app.
+The package registers three routes under the prefix `modman`, defaulting to the `api` and `auth` middleware. Reports return moderator-only data (free-text reasons, LLM evidence, full decision history), so the routes ship behind authentication and an explicit authorization gate.
 
 | Method | Path | Name |
 | --- | --- | --- |
@@ -96,7 +96,39 @@ The package registers three routes under the `api` middleware group, prefix `mod
 | POST | `/modman/reports/{report}/resolve` | `modman.reports.resolve` |
 | POST | `/modman/reports/{report}/reopen` | `modman.reports.reopen` |
 
-`resolve` takes `{ "decision": "approve" | "reject", "reason": "optional string" }`. `reopen` takes an optional `reason`. Both require `$request->user()` to be an Eloquent `Model`.
+`resolve` takes `{ "decision": "approve" | "reject", "reason": "optional string" }`. `reopen` takes an optional `reason`. Both require `$request->user()` to be an Eloquent `Model` and to pass the matching gate.
+
+### Disabling or overriding the routes
+
+```php
+// config/modman.php
+'routes' => [
+    'enabled' => true,                    // set false to skip route registration entirely
+    'middleware' => ['api', 'auth:sanctum'], // override to match your guard stack
+],
+```
+
+When `routes.enabled` is `false`, the package registers no HTTP routes — wire your own controllers if you need a different shape.
+
+### Authorization gates
+
+modman defines two gates with fail-closed defaults:
+
+- `modman.resolve` — checked before `POST /modman/reports/{report}/resolve`
+- `modman.reopen` — checked before `POST /modman/reports/{report}/reopen`
+
+Both deny by default (every request returns 403) until the host overrides them. Register replacements in any service provider that boots before `ModmanServiceProvider`, or simply at runtime — `Gate::has()` keeps the package from clobbering your definition:
+
+```php
+use Dynamik\Modman\Models\Report;
+use Illuminate\Support\Facades\Gate;
+use App\Models\User;
+
+Gate::define('modman.resolve', fn (User $user, Report $report) => $user->is_moderator);
+Gate::define('modman.reopen', fn (User $user, Report $report) => $user->is_moderator);
+```
+
+The controllers respond with 401 when no user is authenticated, 403 when the authenticated identity is not an Eloquent `Model` or the gate denies the action.
 
 ## Where to go next
 

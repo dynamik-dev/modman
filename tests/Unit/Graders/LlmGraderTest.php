@@ -107,6 +107,53 @@ it('returns Error when the HTTP call throws (5xx)', function (): void {
     expect($verdict->evidence['exception'] ?? null)->not->toBeNull();
 });
 
+it('short-circuits with an Error verdict when the api key is empty', function (): void {
+    Http::fake();
+
+    $grader = new LlmGrader(
+        driver: 'anthropic',
+        model: 'claude-haiku-4-5',
+        promptTemplate: "Evaluate:\n{{content}}",
+        apiKey: '',
+        timeout: 5,
+        maxTokens: 256,
+    );
+
+    $verdict = $grader->grade(
+        ModerationContent::make()->withText('hi'),
+        Report::factory()->make(),
+    );
+
+    expect($verdict->kind)->toBe(VerdictKind::Error);
+    expect($verdict->severity)->toBe(0.0);
+    expect($verdict->reason)->toBe('LLM grader not configured');
+    expect($verdict->evidence['hint'] ?? null)->toBe('set MODMAN_LLM_API_KEY');
+
+    Http::assertNothingSent();
+});
+
+it('short-circuits when the api key is whitespace only', function (): void {
+    Http::fake();
+
+    $grader = new LlmGrader(
+        driver: 'openai',
+        model: 'gpt-4o-mini',
+        promptTemplate: "Evaluate:\n{{content}}",
+        apiKey: "   \t\n",
+        timeout: 5,
+        maxTokens: 256,
+    );
+
+    $verdict = $grader->grade(
+        ModerationContent::make()->withText('hi'),
+        Report::factory()->make(),
+    );
+
+    expect($verdict->kind)->toBe(VerdictKind::Error);
+
+    Http::assertNothingSent();
+});
+
 it('returns Error for an unknown driver', function (): void {
     $grader = new LlmGrader(
         driver: 'groq',

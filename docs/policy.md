@@ -22,9 +22,11 @@ Must not mutate the report or the decision. Returns one of four `PolicyAction` v
 Its decision tree runs in this order:
 
 1. If the latest verdict is `reject`, or severity is at or above `auto_reject_at` (default `0.9`), return `Reject`.
-2. If the latest verdict is `approve` and severity is strictly below `auto_approve_below` (default `0.2`), return `Approve`.
+2. If the latest verdict is `approve` and severity is at or below `auto_approve_below` (default `0.2`), return `Approve`.
 3. Otherwise, look up the current grader's position in the configured pipeline. If there is a next grader, return `EscalateTo(nextKey)`.
 4. No more graders left: return `RouteToHuman`.
+
+Both threshold comparisons are **inclusive** of the boundary: severity exactly equal to `auto_reject_at` rejects; severity exactly equal to `auto_approve_below` approves. Anything strictly between the two thresholds gets passed down the pipeline.
 
 `Inconclusive` verdicts at moderate severity fall through step 3 or 4 naturally. `Error` and `Skipped` verdicts also fall through — the orchestrator relies on the policy to route them onward.
 

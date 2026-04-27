@@ -10,7 +10,7 @@ use Dynamik\Modman\Support\ModerationContent;
 use Dynamik\Modman\Support\Verdict;
 use Dynamik\Modman\Support\VerdictKind;
 
-final class HeuristicGrader implements Grader
+final readonly class HeuristicGrader implements Grader
 {
     public function key(): string
     {

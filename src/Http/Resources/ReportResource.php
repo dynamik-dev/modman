@@ -6,6 +6,7 @@ namespace Dynamik\Modman\Http\Resources;
 
 use Dynamik\Modman\Models\Decision;
 use Dynamik\Modman\Models\Report;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Override;
@@ -37,7 +38,7 @@ final class ReportResource extends JsonResource
         return [
             'id' => $this->resource->id,
             'reportable' => [
-                'type' => $this->resource->reportable_type,
+                'type' => $this->morphAlias($this->resource->reportable_type),
                 'id' => $this->resource->reportable_id,
             ],
             'reason' => $this->resource->reason,
@@ -46,5 +47,16 @@ final class ReportResource extends JsonResource
             'created_at' => $this->resource->created_at?->toIso8601String(),
             'decisions' => $mapped,
         ];
+    }
+
+    /**
+     * Resolve a morph alias from the registered morph map; fall back to the FQCN
+     * when the host has not registered an alias for the class.
+     */
+    private function morphAlias(string $class): string
+    {
+        $alias = array_search($class, Relation::morphMap(), true);
+
+        return is_string($alias) ? $alias : $class;
     }
 }

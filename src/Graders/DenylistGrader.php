@@ -51,6 +51,11 @@ final readonly class DenylistGrader implements Grader
             }
         }
 
+        // Regex patterns match against the raw text by design: the `case_sensitive`
+        // flag and unicode-confusables transliteration only apply to literal `words`.
+        // PCRE callers express case-insensitivity with the `/i` flag and any other
+        // normalization through the pattern itself — that gives full PCRE control
+        // and avoids silently lowercasing capture groups.
         foreach ($this->regex as $pattern) {
             if (preg_match($pattern, $raw) === 1) {
                 $matches[] = $pattern;

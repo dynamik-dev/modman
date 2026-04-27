@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Dynamik\Modman\Contracts\Grader;
 use Dynamik\Modman\Contracts\ModerationPolicy;
+use Dynamik\Modman\Support\PolicyAction;
 use GuzzleHttp\Client;
 use GuzzleHttp\ClientInterface;
 use Illuminate\Broadcasting\InteractsWithSockets;
@@ -94,3 +95,29 @@ arch('events are plain PHP objects with no Laravel event traits')
         SerializesModels::class,
         InteractsWithSockets::class,
     ]);
+
+// task-10: PolicyAction is a sealed union — only the shipped actions in
+// Support\PolicyActions may implement it. Adding a new implementer outside
+// that namespace will fail this test.
+arch('PolicyAction is sealed to Support\\PolicyActions')
+    ->expect(PolicyAction::class)
+    ->toOnlyBeUsedIn([
+        'Dynamik\Modman\Support\PolicyActions',
+        'Dynamik\Modman\Contracts',
+        'Dynamik\Modman\Policy',
+        'Dynamik\Modman\Pipeline',
+    ]);
+
+arch('all PolicyActions are final readonly and implement the marker interface')
+    ->expect('Dynamik\Modman\Support\PolicyActions')
+    ->classes()
+    ->toBeFinal()
+    ->toBeReadonly()
+    ->toImplement(PolicyAction::class);
+
+// task-29: graders are stateless — lock that in by requiring readonly classes.
+arch('graders are final readonly')
+    ->expect('Dynamik\Modman\Graders')
+    ->classes()
+    ->toBeReadonly()
+    ->ignoring('Dynamik\Modman\Graders\Testing');

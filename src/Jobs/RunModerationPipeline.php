@@ -10,7 +10,6 @@ use Dynamik\Modman\Pipeline\Orchestrator;
 use Dynamik\Modman\States\NeedsHuman;
 use Dynamik\Modman\States\ResolvedApproved;
 use Dynamik\Modman\States\ResolvedRejected;
-use Dynamik\Modman\Support\Tier;
 use Dynamik\Modman\Support\VerdictKind;
 use Dynamik\Modman\Transitions\ToNeedsHuman;
 use Illuminate\Bus\Queueable;
@@ -53,10 +52,12 @@ final class RunModerationPipeline implements ShouldQueue
             return;
         }
 
+        // task-6: pipeline-system errors record tier='pipeline' instead of
+        // hosted_classifier so audit data isn't misattributed to a grader tier.
         Decision::query()->create([
             'report_id' => $report->id,
             'grader' => 'pipeline',
-            'tier' => Tier::HostedClassifier->value,
+            'tier' => 'pipeline',
             'verdict' => VerdictKind::Error->value,
             'severity' => null,
             'reason' => 'pipeline job failed: '.$e->getMessage(),
@@ -73,5 +74,12 @@ final class RunModerationPipeline implements ShouldQueue
         $name = config('modman.queue', 'modman');
 
         return is_string($name) ? $name : 'modman';
+    }
+
+    public static function connectionName(): ?string
+    {
+        $name = config('modman.connection');
+
+        return is_string($name) && $name !== '' ? $name : null;
     }
 }

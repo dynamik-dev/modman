@@ -37,6 +37,15 @@ final readonly class LlmGrader implements Grader
 
     public function grade(ModerationContent $content, Report $report): Verdict
     {
+        if (trim($this->apiKey) === '') {
+            return new Verdict(
+                VerdictKind::Error,
+                0.0,
+                'LLM grader not configured',
+                ['hint' => 'set MODMAN_LLM_API_KEY'],
+            );
+        }
+
         $prompt = str_replace('{{content}}', $this->renderContent($content), $this->promptTemplate);
 
         try {

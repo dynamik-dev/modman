@@ -10,7 +10,9 @@ use Dynamik\Modman\Graders\LlmGrader;
 use Dynamik\Modman\Policy\ConfigDrivenPolicy;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use InvalidArgumentException;
 use Override;
 
 final class ModmanServiceProvider extends ServiceProvider
@@ -92,14 +94,27 @@ final class ModmanServiceProvider extends ServiceProvider
             );
         });
 
-        $this->app->bind(ModerationPolicy::class, function (Application $app): ModerationPolicy {
-            /** @var ConfigRepository $repo */
-            $repo = $app->make('config');
-            $configured = $repo->get('modman.policy', ConfigDrivenPolicy::class);
-            $class = is_string($configured) ? $configured : ConfigDrivenPolicy::class;
+        // task-26: validate the configured policy class at register time so a
+        // typo surfaces at boot rather than the first failed pipeline tick.
+        /** @var ConfigRepository $configRepo */
+        $configRepo = $this->app->make('config');
+        $configuredPolicy = $configRepo->get('modman.policy', ConfigDrivenPolicy::class);
+        $policyClass = is_string($configuredPolicy) ? $configuredPolicy : ConfigDrivenPolicy::class;
 
+        if (! class_exists($policyClass)) {
+            throw new InvalidArgumentException(
+                "modman.policy: class [{$policyClass}] does not exist."
+            );
+        }
+        if (! is_subclass_of($policyClass, ModerationPolicy::class)) {
+            throw new InvalidArgumentException(
+                "modman.policy: class [{$policyClass}] must implement ".ModerationPolicy::class.'.'
+            );
+        }
+
+        $this->app->bind(ModerationPolicy::class, function (Application $app) use ($policyClass): ModerationPolicy {
             /** @var ModerationPolicy $instance */
-            $instance = $app->make($class);
+            $instance = $app->make($policyClass);
 
             return $instance;
         });
@@ -108,7 +123,41 @@ final class ModmanServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
-        $this->loadRoutesFrom(__DIR__.'/../routes/api.php');
+
+        // Fail-closed defaults: hosts override these gates to authorize their
+        // moderators. Gate::has() ensures we never clobber a host definition.
+        if (! Gate::has('modman.resolve')) {
+            Gate::define('modman.resolve', fn (): bool => false);
+        }
+        if (! Gate::has('modman.reopen')) {
+            Gate::define('modman.reopen', fn (): bool => false);
+        }
+
+        /** @var ConfigRepository $config */
+        $config = $this->app->make('config');
+
+        // task-18: surface malformed denylist regex patterns at boot rather
+        // than silently misclassifying as "no match" inside the grader.
+        $regex = $config->get('modman.graders.denylist.regex', []);
+        if (is_array($regex)) {
+            foreach ($regex as $pattern) {
+                if (! is_string($pattern)) {
+                    throw new InvalidArgumentException(
+                        'modman.graders.denylist.regex: every entry must be a string.'
+                    );
+                }
+                if (@preg_match($pattern, '') === false) {
+                    $error = preg_last_error_msg();
+                    throw new InvalidArgumentException(
+                        "modman.graders.denylist.regex: invalid pattern [{$pattern}]: {$error}"
+                    );
+                }
+            }
+        }
+
+        if ((bool) $config->get('modman.routes.enabled', true)) {
+            $this->loadRoutesFrom(__DIR__.'/../routes/api.php');
+        }
 
         if ($this->app->runningInConsole()) {
             $this->publishes([

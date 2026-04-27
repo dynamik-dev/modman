@@ -12,6 +12,7 @@ use Dynamik\Modman\Support\PolicyActions\Approve;
 use Dynamik\Modman\Support\PolicyActions\EscalateTo;
 use Dynamik\Modman\Support\PolicyActions\Reject;
 use Dynamik\Modman\Support\PolicyActions\RouteToHuman;
+use Dynamik\Modman\Support\VerdictKind;
 
 final readonly class ConfigDrivenPolicy implements ModerationPolicy
 {
@@ -29,11 +30,15 @@ final readonly class ConfigDrivenPolicy implements ModerationPolicy
         $severity = $latest->severity;
         $verdict = $latest->verdict;
 
-        if ($verdict === 'reject' || ($severity !== null && $severity >= $this->autoRejectAt)) {
+        if ($verdict === VerdictKind::Reject || ($severity !== null && $severity >= $this->autoRejectAt)) {
             return new Reject;
         }
 
-        if ($verdict === 'approve' && $severity !== null && $severity < $this->autoApproveBelow) {
+        // task-25: inclusive at the boundary. A grader returning approve at exactly
+        // `auto_approve_below` auto-approves; this matches the "anything strictly
+        // higher needs more scrutiny" mental model most users carry. The reject side
+        // already uses `>=` so both bounds are now inclusive of the threshold.
+        if ($verdict === VerdictKind::Approve && $severity !== null && $severity <= $this->autoApproveBelow) {
             return new Approve;
         }
 

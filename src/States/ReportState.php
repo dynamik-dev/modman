@@ -23,6 +23,7 @@ abstract class ReportState extends State
             ->allowTransition(Screening::class, ResolvedApproved::class)
             ->allowTransition(Screening::class, ResolvedRejected::class)
             ->allowTransition(Screening::class, NeedsLlm::class)
+            ->allowTransition(Screening::class, NeedsHuman::class)
             ->allowTransition(NeedsLlm::class, ResolvedApproved::class)
             ->allowTransition(NeedsLlm::class, ResolvedRejected::class)
             ->allowTransition(NeedsLlm::class, NeedsHuman::class)

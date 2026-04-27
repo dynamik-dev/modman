@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Dynamik\Modman\Models;
 
 use Dynamik\Modman\Database\Factories\DecisionFactory;
+use Dynamik\Modman\Support\VerdictKind;
 use Illuminate\Database\Eloquent\Concerns\HasUlids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,11 +15,15 @@ use Illuminate\Support\Carbon;
 use Override;
 
 /**
+ * `tier` is intentionally a free-form string: custom graders persist their
+ * configured key when it is not one of the shipped Tier enum cases, so the
+ * audit trail records the grader as it actually appeared in the pipeline.
+ *
  * @property string $id
  * @property string $report_id
  * @property string $grader
  * @property string $tier
- * @property string $verdict
+ * @property VerdictKind $verdict
  * @property float|null $severity
  * @property string|null $reason
  * @property array<string, mixed>|null $evidence
@@ -37,7 +42,18 @@ final class Decision extends Model
 
     protected $table = 'moderation_decisions';
 
-    protected $guarded = [];
+    /** @var list<string> */
+    protected $fillable = [
+        'report_id',
+        'grader',
+        'tier',
+        'verdict',
+        'severity',
+        'reason',
+        'evidence',
+        'actor_type',
+        'actor_id',
+    ];
 
     public function report(): BelongsTo
     {
@@ -58,6 +74,7 @@ final class Decision extends Model
     protected function casts(): array
     {
         return [
+            'verdict' => VerdictKind::class,
             'severity' => 'float',
             'evidence' => 'array',
             'created_at' => 'datetime',

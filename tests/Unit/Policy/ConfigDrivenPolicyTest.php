@@ -33,6 +33,22 @@ it('approves when severity < auto_approve_below and verdict is approve', functio
     expect(makePolicy()->decide($report, $decision))->toBeInstanceOf(Approve::class);
 });
 
+// task-25: the auto_approve_below boundary is inclusive (<=). Severity == threshold
+// auto-approves; severity strictly above falls through to escalate/route-to-human.
+it('auto-approves at exactly auto_approve_below', function (): void {
+    $report = Report::factory()->make();
+    $decision = Decision::factory()->make(['grader' => 'denylist', 'verdict' => 'approve', 'severity' => 0.2]);
+
+    expect(makePolicy()->decide($report, $decision))->toBeInstanceOf(Approve::class);
+});
+
+it('escalates when severity is just above auto_approve_below', function (): void {
+    $report = Report::factory()->make();
+    $decision = Decision::factory()->make(['grader' => 'denylist', 'verdict' => 'approve', 'severity' => 0.21]);
+
+    expect(makePolicy()->decide($report, $decision))->toBeInstanceOf(EscalateTo::class);
+});
+
 it('escalates to the next grader when severity is in the uncertain band', function (): void {
     $report = Report::factory()->make();
     $decision = Decision::factory()->make(['grader' => 'denylist', 'verdict' => 'inconclusive', 'severity' => 0.5]);

@@ -5,10 +5,14 @@ declare(strict_types=1);
 use Dynamik\Modman\Contracts\Grader;
 use Dynamik\Modman\Graders\DenylistGrader;
 use Dynamik\Modman\Graders\HeuristicGrader;
+use Dynamik\Modman\Graders\LlmGrader;
+use Dynamik\Modman\Graders\OpenAiModerationGrader;
+use Dynamik\Modman\Graders\PerceptualHashGrader;
 use Dynamik\Modman\Graders\Testing\FakeGrader;
 use Dynamik\Modman\Models\Report;
 use Dynamik\Modman\Support\Image;
 use Dynamik\Modman\Support\ModerationContent;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Reusable conformance suite for any Grader implementation.
@@ -60,4 +64,62 @@ it('FakeGrader conforms', function (): void {
 
 it('HeuristicGrader conforms', function (): void {
     assertGraderConforms(fn (): HeuristicGrader => new HeuristicGrader);
+});
+
+it('LlmGrader conforms', function (): void {
+    // Canned valid response — the conformance suite only calls grade() on supported
+    // content (text), so a single 200 with a parseable verdict body covers both drivers.
+    Http::fake([
+        '*' => Http::response([
+            'content' => [['type' => 'text', 'text' => json_encode([
+                'verdict' => 'approve',
+                'severity' => 0.0,
+                'reason' => 'clean',
+                'categories' => [],
+            ])]],
+            'choices' => [['message' => ['content' => json_encode([
+                'verdict' => 'approve',
+                'severity' => 0.0,
+                'reason' => 'clean',
+                'categories' => [],
+            ])]]],
+        ]),
+    ]);
+
+    assertGraderConforms(fn (): LlmGrader => new LlmGrader(
+        driver: 'anthropic',
+        model: 'claude-haiku-4-5',
+        promptTemplate: "Evaluate:\n{{content}}",
+        apiKey: 'test-key',
+        timeout: 5,
+        maxTokens: 256,
+    ));
+});
+
+it('OpenAiModerationGrader conforms', function (): void {
+    Http::fake([
+        'api.openai.com/v1/moderations' => Http::response([
+            'results' => [[
+                'flagged' => false,
+                'categories' => ['hate' => false],
+                'category_scores' => ['hate' => 0.01],
+            ]],
+        ]),
+    ]);
+
+    assertGraderConforms(fn (): OpenAiModerationGrader => new OpenAiModerationGrader(
+        apiKey: 'test-key',
+        model: 'omni-moderation-latest',
+        timeout: 5,
+    ));
+});
+
+it('PerceptualHashGrader conforms', function (): void {
+    // Stub hasher returns a hash that does not collide with knownHashes — the
+    // conformance suite never asserts a particular verdict, only that severity
+    // sits in [0, 1] when supports() returns true.
+    assertGraderConforms(fn (): PerceptualHashGrader => new PerceptualHashGrader(
+        knownHashes: [],
+        hasher: fn (): string => 'no-op-hash',
+    ));
 });

@@ -51,7 +51,16 @@ final class Report extends Model
 
     protected $table = 'reports';
 
-    protected $guarded = [];
+    /** @var list<string> */
+    protected $fillable = [
+        'reportable_type',
+        'reportable_id',
+        'reporter_type',
+        'reporter_id',
+        'reason',
+        'state',
+        'resolved_at',
+    ];
 
     public function reportable(): MorphTo
     {
@@ -70,45 +79,56 @@ final class Report extends Model
 
     public function resolveApprove(Model $moderator, ?string $reason = null): void
     {
-        $this->guardTransition(ResolvedApproved::class);
-
         DB::transaction(function () use ($moderator, $reason): void {
-            $this->writeHumanDecision($moderator, VerdictKind::Approve, $reason);
-            $this->state->transition(new ToResolvedApproved($this, $moderator, $reason));
-            $this->newQuery()->whereKey($this->getKey())->update(['resolved_at' => now()]);
-            $this->refresh();
+            $locked = $this->lockSelf();
+            $locked->guardTransition(ResolvedApproved::class);
+
+            $locked->writeHumanDecision($moderator, VerdictKind::Approve, $reason);
+            $locked->state->transition(new ToResolvedApproved($locked, $moderator, $reason));
+            $locked->newQuery()->whereKey($locked->getKey())->update(['resolved_at' => now()]);
         });
+        $this->refresh();
         Event::dispatch(new ReportResolved($this, VerdictKind::Approve));
     }
 
     public function resolveReject(Model $moderator, ?string $reason = null): void
     {
-        $this->guardTransition(ResolvedRejected::class);
-
         DB::transaction(function () use ($moderator, $reason): void {
-            $this->writeHumanDecision($moderator, VerdictKind::Reject, $reason);
-            $this->state->transition(new ToResolvedRejected($this, $moderator, $reason));
-            $this->newQuery()->whereKey($this->getKey())->update(['resolved_at' => now()]);
-            $this->refresh();
+            $locked = $this->lockSelf();
+            $locked->guardTransition(ResolvedRejected::class);
+
+            $locked->writeHumanDecision($moderator, VerdictKind::Reject, $reason);
+            $locked->state->transition(new ToResolvedRejected($locked, $moderator, $reason));
+            $locked->newQuery()->whereKey($locked->getKey())->update(['resolved_at' => now()]);
         });
+        $this->refresh();
         Event::dispatch(new ReportResolved($this, VerdictKind::Reject));
     }
 
     public function reopen(Model $actor, ?string $reason = null): void
     {
-        $this->guardTransition(NeedsHuman::class);
-
         DB::transaction(function () use ($actor, $reason): void {
-            $this->state->transition(new Reopen($this, $actor, $reason));
-            $this->newQuery()->whereKey($this->getKey())->update(['resolved_at' => null]);
-            $this->refresh();
+            $locked = $this->lockSelf();
+            $locked->guardTransition(NeedsHuman::class);
+
+            $locked->state->transition(new Reopen($locked, $actor, $reason));
+            $locked->newQuery()->whereKey($locked->getKey())->update(['resolved_at' => null]);
         });
+        $this->refresh();
         Event::dispatch(new ReportReopened($this, $actor, $reason));
     }
 
     protected static function newFactory(): ReportFactory
     {
         return ReportFactory::new();
+    }
+
+    private function lockSelf(): self
+    {
+        $locked = self::query()->lockForUpdate()->findOrFail($this->getKey());
+        assert($locked instanceof self);
+
+        return $locked;
     }
 
     /**

@@ -43,6 +43,7 @@ trait Reportable
         Event::dispatch(new ReportCreated($report));
 
         RunModerationPipeline::dispatch($report->id)
+            ->onConnection(RunModerationPipeline::connectionName())
             ->onQueue(RunModerationPipeline::queueName());
 
         return $report;

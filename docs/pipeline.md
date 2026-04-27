@@ -75,6 +75,12 @@ Removing `llm` is supported. The orchestrator will simply run the remaining grad
 
 Custom graders just need a unique key and a class — see [writing-a-custom-grader.md](writing-a-custom-grader.md). Bind a constructor in a service provider if the grader needs injected dependencies (the container resolves the class).
 
+## Ordering note: keep `'llm'` last
+
+Place `'llm'` last in `config('modman.pipeline')`. Running graders after `'llm'` is supported (no longer infinite-loops as of task-1) but each subsequent grader will run on a separate orchestrator tick and require its own state-machine handling — the orchestrator dispatches a fresh `RunModerationPipeline` job per advance once the report is in `needs_llm`. That means more queue round-trips and more decision rows than a screening-only pipeline.
+
+Future versions may forbid this ordering with an arch test. For now, the recommended layout is screening-only graders (denylist, heuristic, hosted classifiers) first and `'llm'` last.
+
 ## Failure handling
 
 If a grader throws, the orchestrator catches it and writes an `error` verdict instead of blowing up the pipeline. If the queued job itself fails all three retries, `RunModerationPipeline::failed()` writes one final error decision and transitions to `needs_human` so the report never gets stuck.

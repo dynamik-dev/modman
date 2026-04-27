@@ -4,17 +4,27 @@ declare(strict_types=1);
 
 use Dynamik\Modman\Graders\DenylistGrader;
 use Dynamik\Modman\Graders\LlmGrader;
+use Dynamik\Modman\Policy\ConfigDrivenPolicy;
 
 return [
     'queue' => env('MODMAN_QUEUE', 'modman'),
     'connection' => env('MODMAN_QUEUE_CONNECTION'),
+
+    // The shipped /modman/reports/* routes return moderator-only data (free-text
+    // reason, LLM evidence, full decision history). They default to the auth
+    // middleware. Disable the group entirely or override the middleware stack
+    // when wiring host authorization.
+    'routes' => [
+        'enabled' => true,
+        'middleware' => ['api', 'auth'],
+    ],
 
     'pipeline' => [
         'denylist' => DenylistGrader::class,
         'llm' => LlmGrader::class,
     ],
 
-    'policy' => 'Dynamik\\Modman\\Policy\\ConfigDrivenPolicy',
+    'policy' => ConfigDrivenPolicy::class,
 
     'thresholds' => [
         'auto_reject_at' => 0.9,

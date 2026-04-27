@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('reportable_id');
             $table->string('reporter_type')->nullable();
             $table->string('reporter_id')->nullable();
-            $table->string('reason')->nullable();
+            $table->text('reason')->nullable();
             $table->string('state');
             $table->timestamp('resolved_at')->nullable();
             $table->timestamps();

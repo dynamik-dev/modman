@@ -8,7 +8,9 @@ public function supports(ModerationContent $content): bool;
 public function grade(ModerationContent $content, Report $report): Verdict;
 ```
 
-The `Verdict` carries a `VerdictKind` (`Approve`, `Reject`, `Inconclusive`, `Error`, `Skipped`), a severity in `[0.0, 1.0]`, a human-readable reason, and arbitrary evidence. The `Tier` records where in the stack the grader runs: `Denylist`, `Heuristic`, `HostedClassifier`, `Llm`, `Human`.
+The `Verdict` carries a `VerdictKind` (`Approve`, `Reject`, `Inconclusive`, `Error`), a severity in `[0.0, 1.0]`, a human-readable reason, and arbitrary evidence. The `Tier` records where in the stack the grader runs: `Denylist`, `Heuristic`, `HostedClassifier`, `Llm`, `Human`.
+
+`VerdictKind::Skipped` also exists, but is reserved for the orchestrator: it is written when `Grader::supports()` returns false so the audit trail explains why the pipeline advanced. Graders themselves should never return `Skipped` — they should signal non-applicability via `supports()`.
 
 ## Shipped graders
 
@@ -33,6 +35,8 @@ Matches literal words (after transliteration + lowercasing by default) and PCRE 
 ```
 
 Words in `words_path` are merged with inline `words`. Lines starting with `#` are treated as comments. The service provider binds the `DenylistGrader::class` to read these config keys.
+
+The `case_sensitive` flag and unicode-confusables transliteration apply to `words` only. `regex` patterns match against the raw text exactly as supplied — express case-insensitivity with the `/i` PCRE flag (e.g. `'/\\bbadword\\b/i'`). This keeps full PCRE control in the caller's hands rather than silently lowercasing capture groups.
 
 Use when: you have a known-bad terms list. Fast, local, no API calls.
 

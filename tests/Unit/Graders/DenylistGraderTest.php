@@ -60,3 +60,17 @@ it('normalizes unicode confusables', function (): void {
     );
     expect($verdict->kind)->toBe(VerdictKind::Reject);
 });
+
+// task-17: regex patterns match against raw text — case_sensitive=false does NOT
+// imply case-insensitive regex. Callers express that with the `/i` flag.
+it('matches regex patterns against raw text and does not auto-lowercase', function (): void {
+    $caseInsensitive = new DenylistGrader(regex: ['/badword/i'], caseSensitive: false);
+    $caseSensitiveOnly = new DenylistGrader(regex: ['/badword/'], caseSensitive: false);
+
+    $content = ModerationContent::make()->withText('contains BadWord here');
+    $report = Report::factory()->make();
+
+    expect($caseInsensitive->grade($content, $report)->kind)->toBe(VerdictKind::Reject);
+    // Without /i the pattern does not match even though words would normalize.
+    expect($caseSensitiveOnly->grade($content, $report)->kind)->toBe(VerdictKind::Approve);
+});

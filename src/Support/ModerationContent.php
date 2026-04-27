@@ -61,12 +61,25 @@ final readonly class ModerationContent
     /** @param  iterable<Image>  $images */
     public function withImages(iterable $images): self
     {
-        return new self($this->text, array_values([...$images]), $this->videos);
+        return new self($this->text, $this->toList($images), $this->videos);
     }
 
     /** @param  iterable<Video>  $videos */
     public function withVideos(iterable $videos): self
     {
-        return new self($this->text, $this->images, array_values([...$videos]));
+        return new self($this->text, $this->images, $this->toList($videos));
+    }
+
+    /**
+     * @template T
+     *
+     * @param  iterable<T>  $items
+     * @return list<T>
+     */
+    private function toList(iterable $items): array
+    {
+        return is_array($items)
+            ? array_values($items)
+            : iterator_to_array($items, preserve_keys: false);
     }
 }
