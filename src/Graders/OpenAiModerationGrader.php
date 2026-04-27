@@ -27,7 +27,7 @@ final readonly class OpenAiModerationGrader implements Grader
 
     public function supports(ModerationContent $content): bool
     {
-        return $content->hasText() || $content->hasImages();
+        return $content->hasText();
     }
 
     public function grade(ModerationContent $content, Report $report): Verdict
