@@ -13,6 +13,12 @@ jobs:
       matrix:
         php: ['8.3', '8.4', '8.5']
         laravel: ['11.*', '12.*', '13.*']
+        # spatie/laravel-model-states 2.12.2+ (the first version supporting
+        # Laravel 13) requires PHP ^8.4, so the 8.3 × L13 combination is not
+        # an installable target even though Laravel 13 itself accepts PHP 8.3.
+        exclude:
+          - php: '8.3'
+            laravel: '13.*'
 
     steps:
       - uses: actions/checkout@v4
