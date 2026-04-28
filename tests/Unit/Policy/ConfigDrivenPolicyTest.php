@@ -80,3 +80,24 @@ it('escalates on grader error when a next tier exists', function (): void {
     $action = makePolicy()->decide($report, $decision);
     expect($action)->toBeInstanceOf(EscalateTo::class);
 });
+
+// task: do not auto-reject on Error severity. LlmGrader maps unknown provider
+// verdict strings to Error while preserving the model-supplied severity, so a
+// prompt-influenced or malformed payload with severity 1.0 must NOT trip the
+// auto-reject threshold. Error escalates (or routes to human at the final tier).
+it('does not auto-reject when verdict is error even at high severity', function (): void {
+    $report = Report::factory()->make();
+    $decision = Decision::factory()->make(['grader' => 'denylist', 'verdict' => 'error', 'severity' => 1.0]);
+
+    $action = makePolicy()->decide($report, $decision);
+    expect($action)->toBeInstanceOf(EscalateTo::class);
+    /** @var EscalateTo $action */
+    expect($action->graderKey)->toBe('llm');
+});
+
+it('routes to human on error at the final tier even at high severity', function (): void {
+    $report = Report::factory()->make();
+    $decision = Decision::factory()->make(['grader' => 'llm', 'verdict' => 'error', 'severity' => 1.0]);
+
+    expect(makePolicy()->decide($report, $decision))->toBeInstanceOf(RouteToHuman::class);
+});

@@ -44,8 +44,12 @@ final readonly class DenylistGrader implements Grader
 
         $matches = [];
 
+        // Both sides go through the same normalization so the haystack and the
+        // needle agree on transliteration. Otherwise a configured word like
+        // `café` would never match its own transliterated haystack `cafe`.
+        // Case sensitivity is preserved inside normalize().
         foreach ($this->words as $word) {
-            $needle = $this->caseSensitive ? $word : $this->normalize($word);
+            $needle = $this->normalize($word);
             if ($needle !== '' && str_contains($normalized, $needle)) {
                 $matches[] = $word;
             }

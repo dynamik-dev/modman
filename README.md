@@ -112,18 +112,20 @@ When `routes.enabled` is `false`, the package registers no HTTP routes — wire 
 
 ### Authorization gates
 
-modman defines two gates with fail-closed defaults:
+modman defines three gates with fail-closed defaults:
 
+- `modman.view` — checked before `GET /modman/reports/{report}`
 - `modman.resolve` — checked before `POST /modman/reports/{report}/resolve`
 - `modman.reopen` — checked before `POST /modman/reports/{report}/reopen`
 
-Both deny by default (every request returns 403) until the host overrides them. Register replacements in any service provider that boots before `ModmanServiceProvider`, or simply at runtime — `Gate::has()` keeps the package from clobbering your definition:
+All three deny by default (every request returns 403) until the host overrides them. Register replacements in any service provider that boots before `ModmanServiceProvider`, or simply at runtime — `Gate::has()` keeps the package from clobbering your definition:
 
 ```php
 use Dynamik\Modman\Models\Report;
 use Illuminate\Support\Facades\Gate;
 use App\Models\User;
 
+Gate::define('modman.view', fn (User $user, Report $report) => $user->is_moderator);
 Gate::define('modman.resolve', fn (User $user, Report $report) => $user->is_moderator);
 Gate::define('modman.reopen', fn (User $user, Report $report) => $user->is_moderator);
 ```
@@ -143,7 +145,7 @@ The controllers respond with 401 when no user is authenticated, 403 when the aut
 ## Requirements
 
 - PHP 8.3+
-- Laravel 11 or 12
+- Laravel 11, 12, or 13
 - spatie/laravel-model-states ^2.7
 
 ## License

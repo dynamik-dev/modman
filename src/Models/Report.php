@@ -88,7 +88,10 @@ final class Report extends Model
             $locked->newQuery()->whereKey($locked->getKey())->update(['resolved_at' => now()]);
         });
         $this->refresh();
-        Event::dispatch(new ReportResolved($this, VerdictKind::Approve));
+        // Defer event dispatch to commit so listeners cannot observe rows that
+        // a host's surrounding transaction later rolls back. DB::afterCommit()
+        // runs immediately when there is no active transaction.
+        DB::afterCommit(fn () => Event::dispatch(new ReportResolved($this, VerdictKind::Approve)));
     }
 
     public function resolveReject(Model $moderator, ?string $reason = null): void
@@ -102,7 +105,7 @@ final class Report extends Model
             $locked->newQuery()->whereKey($locked->getKey())->update(['resolved_at' => now()]);
         });
         $this->refresh();
-        Event::dispatch(new ReportResolved($this, VerdictKind::Reject));
+        DB::afterCommit(fn () => Event::dispatch(new ReportResolved($this, VerdictKind::Reject)));
     }
 
     public function reopen(Model $actor, ?string $reason = null): void
@@ -115,7 +118,7 @@ final class Report extends Model
             $locked->newQuery()->whereKey($locked->getKey())->update(['resolved_at' => null]);
         });
         $this->refresh();
-        Event::dispatch(new ReportReopened($this, $actor, $reason));
+        DB::afterCommit(fn () => Event::dispatch(new ReportReopened($this, $actor, $reason)));
     }
 
     protected static function newFactory(): ReportFactory

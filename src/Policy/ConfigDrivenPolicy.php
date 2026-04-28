@@ -30,6 +30,17 @@ final readonly class ConfigDrivenPolicy implements ModerationPolicy
         $severity = $latest->severity;
         $verdict = $latest->verdict;
 
+        // Error must short-circuit the threshold checks. Graders like LlmGrader
+        // map unknown provider verdict strings to Error while preserving the
+        // model-supplied severity, so a malformed or prompt-influenced payload
+        // with severity 1.0 must not trip the auto-reject path — escalate to
+        // the next tier, or route to a human if Error landed on the last one.
+        if ($verdict === VerdictKind::Error) {
+            $next = $this->nextGrader($latest->grader);
+
+            return $next !== null ? new EscalateTo($next) : new RouteToHuman;
+        }
+
         if ($verdict === VerdictKind::Reject || ($severity !== null && $severity >= $this->autoRejectAt)) {
             return new Reject;
         }

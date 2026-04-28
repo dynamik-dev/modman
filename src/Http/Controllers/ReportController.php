@@ -16,6 +16,18 @@ final class ReportController extends Controller
 {
     public function show(Request $request, Report $report): JsonResponse
     {
+        $actor = $request->user();
+        if ($actor === null) {
+            return response()->json(['error' => 'unauthenticated'], 401);
+        }
+        // @phpstan-ignore instanceof.alwaysTrue
+        if (! $actor instanceof Model) {
+            return response()->json(['error' => 'unsupported_identity'], 403);
+        }
+        if (Gate::forUser($actor)->denies('modman.view', $report)) {
+            return response()->json(['error' => 'forbidden'], 403);
+        }
+
         $report->load('decisions');
 
         return (new ReportResource($report))->response($request);

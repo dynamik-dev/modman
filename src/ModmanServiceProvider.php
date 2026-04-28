@@ -8,7 +8,6 @@ use Dynamik\Modman\Contracts\ModerationPolicy;
 use Dynamik\Modman\Graders\DenylistGrader;
 use Dynamik\Modman\Graders\LlmGrader;
 use Dynamik\Modman\Policy\ConfigDrivenPolicy;
-use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -23,7 +22,6 @@ final class ModmanServiceProvider extends ServiceProvider
         $this->mergeConfigFrom(__DIR__.'/../config/modman.php', 'modman');
 
         $this->app->bind(DenylistGrader::class, function (Application $app): DenylistGrader {
-            /** @var ConfigRepository $repo */
             $repo = $app->make('config');
             /** @var array<string, mixed> $config */
             $config = (array) $repo->get('modman.graders.denylist', []);
@@ -33,7 +31,8 @@ final class ModmanServiceProvider extends ServiceProvider
             $path = is_string($config['words_path'] ?? null) ? $config['words_path'] : null;
 
             if ($path !== null && is_file($path)) {
-                $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+                $loaded = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+                $lines = $loaded === false ? [] : $loaded;
                 foreach ($lines as $line) {
                     $line = trim($line);
                     if ($line !== '' && ! str_starts_with($line, '#')) {
@@ -50,7 +49,6 @@ final class ModmanServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(LlmGrader::class, function (Application $app): LlmGrader {
-            /** @var ConfigRepository $repo */
             $repo = $app->make('config');
             /** @var array<string, mixed> $config */
             $config = (array) $repo->get('modman.graders.llm', []);
@@ -78,7 +76,6 @@ final class ModmanServiceProvider extends ServiceProvider
         });
 
         $this->app->bind(ConfigDrivenPolicy::class, function (Application $app): ConfigDrivenPolicy {
-            /** @var ConfigRepository $repo */
             $repo = $app->make('config');
             /** @var array<string, class-string> $pipelineMap */
             $pipelineMap = (array) $repo->get('modman.pipeline', []);
@@ -96,7 +93,6 @@ final class ModmanServiceProvider extends ServiceProvider
 
         // task-26: validate the configured policy class at register time so a
         // typo surfaces at boot rather than the first failed pipeline tick.
-        /** @var ConfigRepository $configRepo */
         $configRepo = $this->app->make('config');
         $configuredPolicy = $configRepo->get('modman.policy', ConfigDrivenPolicy::class);
         $policyClass = is_string($configuredPolicy) ? $configuredPolicy : ConfigDrivenPolicy::class;
@@ -126,6 +122,9 @@ final class ModmanServiceProvider extends ServiceProvider
 
         // Fail-closed defaults: hosts override these gates to authorize their
         // moderators. Gate::has() ensures we never clobber a host definition.
+        if (! Gate::has('modman.view')) {
+            Gate::define('modman.view', fn (): bool => false);
+        }
         if (! Gate::has('modman.resolve')) {
             Gate::define('modman.resolve', fn (): bool => false);
         }
@@ -133,7 +132,6 @@ final class ModmanServiceProvider extends ServiceProvider
             Gate::define('modman.reopen', fn (): bool => false);
         }
 
-        /** @var ConfigRepository $config */
         $config = $this->app->make('config');
 
         // task-18: surface malformed denylist regex patterns at boot rather

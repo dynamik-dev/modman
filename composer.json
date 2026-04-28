@@ -7,24 +7,25 @@
         "php": "^8.3",
         "ext-intl": "*",
         "ext-mbstring": "*",
-        "illuminate/contracts": "^11.0|^12.0",
-        "illuminate/database": "^11.0|^12.0",
-        "illuminate/http": "^11.0|^12.0",
-        "illuminate/queue": "^11.0|^12.0",
-        "illuminate/support": "^11.0|^12.0",
+        "illuminate/contracts": "^11.0|^12.0|^13.0",
+        "illuminate/database": "^11.0|^12.0|^13.0",
+        "illuminate/http": "^11.0|^12.0|^13.0",
+        "illuminate/queue": "^11.0|^12.0|^13.0",
+        "illuminate/support": "^11.0|^12.0|^13.0",
         "spatie/laravel-model-states": "^2.7"
     },
     "require-dev": {
-        "orchestra/testbench": "^9.0|^10.0",
-        "pestphp/pest": "^3.0",
-        "pestphp/pest-plugin-arch": "^3.0",
-        "pestphp/pest-plugin-laravel": "^3.0",
+        "orchestra/testbench": "^9.0|^10.0|^11.0",
+        "pestphp/pest": "^3.0|^4.0",
+        "pestphp/pest-plugin-arch": "^3.0|^4.0",
+        "pestphp/pest-plugin-laravel": "^3.0|^4.0",
         "larastan/larastan": "^3.0",
         "laravel/pint": "^1.18",
-        "rector/rector": "^2.0",
-        "driftingly/rector-laravel": "^2.0",
+        "phpstan/phpstan-strict-rules": "^2.0",
         "icanhazstring/composer-unused": "^0.8|^0.9",
-        "maglnet/composer-require-checker": "^4.14"
+        "maglnet/composer-require-checker": "^4.14",
+        "phpstan/phpstan-deprecation-rules": "^2.0",
+        "roave/security-advisories": "dev-latest"
     },
     "autoload": {
         "psr-4": {

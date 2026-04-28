@@ -52,7 +52,13 @@ abstract class LoggedTransition extends Transition
         });
 
         $fresh = $this->report->fresh() ?? $this->report;
-        Event::dispatch(new ReportTransitioned($fresh, $from, $to));
+        // Defer to commit so callers wrapping this in a larger transaction
+        // cannot have listeners observe state that later rolls back.
+        // DB::afterCommit() runs the callback immediately when there is no
+        // active transaction, preserving sync behavior in the common case.
+        DB::afterCommit(static function () use ($fresh, $from, $to): void {
+            Event::dispatch(new ReportTransitioned($fresh, $from, $to));
+        });
 
         return $fresh;
     }

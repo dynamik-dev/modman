@@ -21,6 +21,7 @@ use Dynamik\Modman\Support\PolicyActions\EscalateTo;
 use Dynamik\Modman\Support\Verdict;
 use Dynamik\Modman\Support\VerdictKind;
 use Dynamik\Modman\Tests\Fixtures\TestReportable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Queue;
 
@@ -106,6 +107,60 @@ it('runs the first grader and resolves when policy returns Approve', function ()
 
     Event::assertDispatched(GraderRan::class);
     Event::assertDispatched(ReportResolved::class);
+});
+
+// step() runs inside DB::transaction in runNext(); a host wrapping runNext in
+// a larger transaction that rolls back must NOT have GraderRan listeners
+// observe a Decision row that no longer exists. DB::afterCommit() defers the
+// dispatch until the outermost commit succeeds.
+it('does not dispatch GraderRan when an outer transaction rolls back', function (): void {
+    // Queue::fake() prevents the sync queue from auto-running the pipeline
+    // immediately on $reportable->report(); we want to run it ourselves inside
+    // an outer DB::transaction so the rollback path is exercised.
+    Queue::fake();
+    Event::fake([GraderRan::class]);
+
+    $grader = new FakeGrader('denylist', new Verdict(VerdictKind::Approve, 0.0, 'clean'));
+    config()->set('modman.pipeline', ['denylist' => $grader::class]);
+    app()->instance($grader::class, $grader);
+
+    $reportable = TestReportable::create(['body' => 'hi']);
+    $report = $reportable->report(null, 'spam');
+
+    try {
+        DB::transaction(function () use ($report): void {
+            app(Orchestrator::class)->runNext($report->fresh());
+            throw new RuntimeException('outer rollback');
+        });
+    } catch (RuntimeException) {
+        // expected
+    }
+
+    Event::assertNotDispatched(GraderRan::class);
+});
+
+// Symmetric positive case: when the outer transaction commits, the deferred
+// GraderRan dispatch must still fire. Otherwise an implementation that drops
+// nested-transaction events entirely would pass the rollback assertion.
+it('dispatches GraderRan when an outer transaction commits', function (): void {
+    Queue::fake();
+    Event::fake([GraderRan::class]);
+
+    $grader = new FakeGrader('denylist', new Verdict(VerdictKind::Approve, 0.0, 'clean'));
+    config()->set('modman.pipeline', ['denylist' => $grader::class]);
+    app()->instance($grader::class, $grader);
+
+    $reportable = TestReportable::create(['body' => 'hi']);
+    $report = $reportable->report(null, 'spam');
+
+    DB::transaction(function () use ($report): void {
+        app(Orchestrator::class)->runNext($report->fresh());
+    });
+
+    Event::assertDispatched(
+        GraderRan::class,
+        fn ($e): bool => $e->decision->grader === 'denylist'
+    );
 });
 
 it('routes to human when policy returns RouteToHuman', function (): void {
