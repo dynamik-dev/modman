@@ -144,8 +144,8 @@ The controllers respond with 401 when no user is authenticated, 403 when the aut
 
 ## Requirements
 
-- PHP 8.3+ (Laravel 13 requires PHP 8.4+ via spatie/laravel-model-states)
-- Laravel 11, 12, or 13
+- PHP 8.4+
+- Laravel 12 or 13
 - spatie/laravel-model-states ^2.7
 
 ## License
