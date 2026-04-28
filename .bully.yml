@@ -1,9 +1,23 @@
+schema_version: 1
+
 # modman .bully.yml
 #
-# Bully wraps the three existing gates so they run at edit-time instead of only
-# in CI: Laravel Pint (format), Larastan (static analysis), and the Pest
-# architecture suite. Each rule no-ops gracefully if its binary isn't installed
-# yet, so bully works in a fresh clone before `composer install`.
+# Bully wraps the project gates so they run at edit-time instead of only in
+# CI: Laravel Pint (format), Larastan (PHPStan static analysis), the Pest
+# architecture suite, and composer manifest validation. Each rule no-ops
+# gracefully if its binary isn't installed yet, so bully works in a fresh
+# clone before `composer install`.
+
+skip:
+  - "vendor/**"
+  - "storage/**"
+  - "bootstrap/cache/**"
+  - "public/build/**"
+  - ".phpunit.cache/**"
+  - ".bully/**"
+  - ".git/**"
+  - ".idea/**"
+  - ".vscode/**"
 
 rules:
   pint:
@@ -17,9 +31,10 @@ rules:
 
   larastan:
     description: >
-      Larastan (PHPStan level 9 via phpstan.neon) catches type errors,
-      null-safety issues, and Laravel-specific mistakes. Running it per
-      edited file gives fast feedback without waiting for the CI matrix.
+      Larastan (PHPStan level 9 via phpstan.neon, with phpstan-strict-rules)
+      catches type errors, null-safety issues, and Laravel-specific mistakes.
+      Running it per edited file gives fast feedback without waiting for the
+      CI matrix.
     engine: script
     scope: ["src/**/*.php", "database/factories/*.php"]
     severity: error
@@ -27,12 +42,23 @@ rules:
 
   pest-arch:
     description: >
-      The Pest architecture suite (tests/Arch/ArchTest.php) enforces
-      package invariants: strict types everywhere in src/, contracts are
-      interfaces only, graders/policies are final, events are final
-      readonly, no debug calls, no direct Guzzle usage, and so on. Any
-      change under src/ or tests/Arch/ should re-run it.
+      The Pest architecture suite (tests/Arch/ArchTest.php) enforces package
+      invariants: strict types everywhere in src/, contracts are interfaces
+      only, graders/policies are final, events are final readonly, no debug
+      calls, no direct Guzzle usage, and so on. Any change under src/ or
+      tests/Arch/ should re-run it.
     engine: script
     scope: ["src/**/*.php", "tests/Arch/*.php"]
     severity: error
     script: "[ -x vendor/bin/pest ] && { vendor/bin/pest --testsuite=arch --compact && exit 0 || exit 1; } || exit 0"
+
+  composer-validate:
+    description: >
+      `composer validate --strict` checks composer.json for schema errors,
+      version normalization, and required keys. It is sub-second and cheap
+      to run on every manifest edit, so a malformed composer.json never
+      reaches CI.
+    engine: script
+    scope: ["composer.json"]
+    severity: error
+    script: "composer validate --strict --no-check-publish"

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Dynamik\Modman\Events\ReportReopened;
 use Dynamik\Modman\Events\ReportResolved;
+use Dynamik\Modman\Events\ReportTransitioned;
 use Dynamik\Modman\Models\Report;
 use Dynamik\Modman\States\NeedsHuman;
 use Dynamik\Modman\States\ResolvedApproved;
@@ -122,4 +123,92 @@ it('serializes concurrent resolveApprove calls so only one decision and one even
 
     expect($report->fresh()->decisions()->count())->toBe(1);
     Event::assertDispatchedTimes(ReportResolved::class, 1);
+});
+
+// Domain events must defer to commit. When a host wraps the resolveApprove call
+// inside a larger transaction that later rolls back, listeners must NOT have
+// observed the rolled-back state. Using DB::afterCommit() in LoggedTransition
+// (and Report::resolve*/reopen) ensures the dispatch is dropped on rollback.
+it('does not dispatch ReportTransitioned or ReportResolved when an outer transaction rolls back', function (): void {
+    Event::fake([ReportTransitioned::class, ReportResolved::class]);
+    $report = Report::factory()->create(['state' => 'needs_human']);
+    $moderator = TestReportable::create(['body' => 'moderator']);
+
+    try {
+        DB::transaction(function () use ($report, $moderator): void {
+            $report->resolveApprove($moderator, 'reason');
+            throw new RuntimeException('outer rollback');
+        });
+    } catch (RuntimeException) {
+        // expected
+    }
+
+    Event::assertNotDispatched(ReportTransitioned::class);
+    Event::assertNotDispatched(ReportResolved::class);
+});
+
+// Symmetric to the rollback test: DB::afterCommit() must still fire the
+// dispatch when the outer transaction commits successfully. Without this
+// positive case, an implementation that drops nested-transaction events
+// entirely would pass the rollback assertion.
+it('dispatches ReportTransitioned and ReportResolved when an outer transaction commits', function (): void {
+    Event::fake([ReportTransitioned::class, ReportResolved::class]);
+    $report = Report::factory()->create(['state' => 'needs_human']);
+    $moderator = TestReportable::create(['body' => 'moderator']);
+
+    DB::transaction(function () use ($report, $moderator): void {
+        $report->resolveApprove($moderator, 'reason');
+    });
+
+    Event::assertDispatched(
+        ReportTransitioned::class,
+        fn ($e): bool => $e->to === 'resolved_approved'
+    );
+    Event::assertDispatched(
+        ReportResolved::class,
+        fn ($e): bool => $e->outcome === VerdictKind::Approve
+    );
+});
+
+it('does not dispatch ReportTransitioned or ReportReopened when reopen rolls back', function (): void {
+    Event::fake([ReportTransitioned::class, ReportReopened::class]);
+    $report = Report::factory()->create([
+        'state' => 'resolved_approved',
+        'resolved_at' => now(),
+    ]);
+    $actor = TestReportable::create(['body' => 'moderator']);
+
+    try {
+        DB::transaction(function () use ($report, $actor): void {
+            $report->reopen($actor, 'appeal');
+            throw new RuntimeException('outer rollback');
+        });
+    } catch (RuntimeException) {
+        // expected
+    }
+
+    Event::assertNotDispatched(ReportTransitioned::class);
+    Event::assertNotDispatched(ReportReopened::class);
+});
+
+it('dispatches ReportTransitioned and ReportReopened when reopen commits', function (): void {
+    Event::fake([ReportTransitioned::class, ReportReopened::class]);
+    $report = Report::factory()->create([
+        'state' => 'resolved_approved',
+        'resolved_at' => now(),
+    ]);
+    $actor = TestReportable::create(['body' => 'moderator']);
+
+    DB::transaction(function () use ($report, $actor): void {
+        $report->reopen($actor, 'appeal');
+    });
+
+    Event::assertDispatched(
+        ReportTransitioned::class,
+        fn ($e): bool => $e->to === 'needs_human'
+    );
+    Event::assertDispatched(
+        ReportReopened::class,
+        fn ($e): bool => $e->reason === 'appeal'
+    );
 });

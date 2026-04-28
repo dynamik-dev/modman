@@ -40,11 +40,18 @@ trait Reportable
             'state' => 'pending',
         ]));
 
-        Event::dispatch(new ReportCreated($report));
+        // Defer both the domain event and the pipeline-job enqueue to commit.
+        // If a host wraps this call in a larger transaction that rolls back,
+        // listeners must NOT see a phantom Report and the queue must NOT receive
+        // a job pointing at a row that never persisted. DB::afterCommit() runs
+        // immediately when there is no active transaction.
+        DB::afterCommit(static function () use ($report): void {
+            Event::dispatch(new ReportCreated($report));
 
-        RunModerationPipeline::dispatch($report->id)
-            ->onConnection(RunModerationPipeline::connectionName())
-            ->onQueue(RunModerationPipeline::queueName());
+            RunModerationPipeline::dispatch($report->id)
+                ->onConnection(RunModerationPipeline::connectionName())
+                ->onQueue(RunModerationPipeline::queueName());
+        });
 
         return $report;
     }

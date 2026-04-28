@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Gate;
 beforeEach(function (): void {
     // Allow gate-protected actions for the default-happy-path tests; individual
     // tests opt back into the fail-closed default to assert denial.
+    Gate::define('modman.view', fn (): bool => true);
     Gate::define('modman.resolve', fn (): bool => true);
     Gate::define('modman.reopen', fn (): bool => true);
 });
@@ -31,6 +32,86 @@ it('returns 401 when fetching a report without auth', function (): void {
 
     $this->getJson(route('modman.reports.show', $report))
         ->assertStatus(401);
+});
+
+it('returns 403 when default modman.view gate denies', function (): void {
+    Gate::define('modman.view', fn (): bool => false);
+
+    $report = Report::factory()->create(['state' => 'needs_human']);
+    $moderator = TestReportable::create(['body' => 'mod']);
+
+    $this->actingAs($moderator)
+        ->getJson(route('modman.reports.show', $report))
+        ->assertStatus(403);
+});
+
+// Lock the controller -> gate contract: show() must pass the authenticated
+// user and the resolved Report to host-defined gates. Without this assertion,
+// a refactor that called Gate::allows('modman.view') (no $report arg) or
+// Gate::forUser(null) would still pass the happy-path test.
+it('passes the authenticated user and the target report to the modman.view gate', function (): void {
+    $captured = ['user' => null, 'report' => null];
+    Gate::define('modman.view', function (Authenticatable $user, Report $report) use (&$captured): bool {
+        $captured['user'] = $user;
+        $captured['report'] = $report;
+
+        return true;
+    });
+
+    $report = Report::factory()->create(['state' => 'needs_human']);
+    $moderator = TestReportable::create(['body' => 'mod']);
+
+    $this->actingAs($moderator)
+        ->getJson(route('modman.reports.show', $report))
+        ->assertOk();
+
+    expect($captured['user'])->toBeInstanceOf(TestReportable::class);
+    expect($captured['user']->getKey())->toBe($moderator->getKey());
+    expect($captured['report'])->toBeInstanceOf(Report::class);
+    expect($captured['report']->id)->toBe($report->id);
+});
+
+it('returns 403 when authenticated identity is not an Eloquent Model on show', function (): void {
+    $report = Report::factory()->create(['state' => 'needs_human']);
+
+    $identity = new class implements Authenticatable
+    {
+        public function getAuthIdentifierName(): string
+        {
+            return 'id';
+        }
+
+        public function getAuthIdentifier(): string
+        {
+            return 'non-model';
+        }
+
+        public function getAuthPasswordName(): string
+        {
+            return 'password';
+        }
+
+        public function getAuthPassword(): string
+        {
+            return '';
+        }
+
+        public function getRememberToken(): string
+        {
+            return '';
+        }
+
+        public function setRememberToken($value): void {}
+
+        public function getRememberTokenName(): string
+        {
+            return '';
+        }
+    };
+
+    $this->actingAs($identity)
+        ->getJson(route('modman.reports.show', $report))
+        ->assertStatus(403);
 });
 
 it('resolves a report with an authenticated and authorized actor', function (): void {

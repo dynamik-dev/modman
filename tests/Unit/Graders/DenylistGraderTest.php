@@ -74,3 +74,33 @@ it('matches regex patterns against raw text and does not auto-lowercase', functi
     // Without /i the pattern does not match even though words would normalize.
     expect($caseSensitiveOnly->grade($content, $report)->kind)->toBe(VerdictKind::Approve);
 });
+
+// Case-sensitive mode still transliterates both haystack and needle. Without
+// matching normalization the haystack would collapse "café" → "cafe" while the
+// configured word stayed "café", so the literal would never match its own text.
+it('matches a transliterated word in case-sensitive mode', function (): void {
+    $grader = new DenylistGrader(words: ['café'], caseSensitive: true);
+    $verdict = $grader->grade(
+        ModerationContent::make()->withText('order a café please'),
+        Report::factory()->make(),
+    );
+
+    expect($verdict->kind)->toBe(VerdictKind::Reject);
+    expect($verdict->evidence['matches'])->toContain('café');
+});
+
+it('preserves case in case-sensitive mode', function (): void {
+    $grader = new DenylistGrader(words: ['Hate'], caseSensitive: true);
+
+    $upper = $grader->grade(
+        ModerationContent::make()->withText('I Hate this'),
+        Report::factory()->make(),
+    );
+    $lower = $grader->grade(
+        ModerationContent::make()->withText('i hate this'),
+        Report::factory()->make(),
+    );
+
+    expect($upper->kind)->toBe(VerdictKind::Reject);
+    expect($lower->kind)->toBe(VerdictKind::Approve);
+});

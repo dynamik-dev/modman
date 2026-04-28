@@ -139,7 +139,10 @@ final readonly class Orchestrator
             ],
         );
 
-        Event::dispatch(new GraderRan($report, $decision));
+        // step() runs inside the surrounding DB::transaction in runNext(); a
+        // policy action below could still throw and roll back this savepoint,
+        // so defer the dispatch until the outer transaction commits.
+        DB::afterCommit(static fn () => Event::dispatch(new GraderRan($report, $decision)));
 
         $action = $this->policy->decide($report, $decision);
 

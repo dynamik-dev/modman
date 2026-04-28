@@ -1,5 +1,7 @@
 includes:
     - vendor/larastan/larastan/extension.neon
+    - vendor/phpstan/phpstan-strict-rules/rules.neon
+    - vendor/phpstan/phpstan-deprecation-rules/rules.neon
 
 parameters:
     level: 9
@@ -15,3 +17,9 @@ parameters:
         -
             identifier: missingType.generics
             path: src/Models/Decision.php
+        # Laravel routes Builder/Request methods like lockForUpdate, pluck, and
+        # validate through __call. They are declared static on the underlying
+        # class but the framework expects instance-style calls; phpstan-strict-rules
+        # flags these as false positives.
+        -
+            identifier: staticMethod.dynamicCall

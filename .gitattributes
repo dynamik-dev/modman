@@ -1,0 +1,34 @@
+# Files and directories below are stripped from the Composer dist archive.
+# Consumers running `composer require dynamik-dev/modman` get only runtime
+# code — no test fixtures, no CI metadata, no editor cruft. Reduces install
+# size and removes files that have no business in vendor/.
+
+# Tests, fixtures, and test config
+/tests                  export-ignore
+/phpunit.xml            export-ignore
+/.phpunit.cache         export-ignore
+/.phpunit.result.cache  export-ignore
+
+# Static analysis and lint config
+/phpstan.neon           export-ignore
+/pint.json              export-ignore
+/.composer-require-checker.json export-ignore
+
+# Agentic-lint (bully) config and telemetry
+/.bully.yml             export-ignore
+/.bully                 export-ignore
+
+# CI, GitHub metadata, and contributor docs
+/.github                export-ignore
+/.gitattributes         export-ignore
+/.gitignore             export-ignore
+
+# Project planning, agent context, and ADRs
+/CLAUDE.md              export-ignore
+/backlog                export-ignore
+/docs/superpowers       export-ignore
+
+# IDE and tooling caches
+/.idea                  export-ignore
+/.vscode                export-ignore
+/.claude                export-ignore
